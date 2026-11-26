@@ -427,6 +427,10 @@
             background: var(--bg-elevated);
             overflow: hidden;
             flex-shrink: 0;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .player-cover img { width: 100%; height: 100%; object-fit: cover; }
         .player-info { min-width: 0; }
@@ -779,7 +783,9 @@
             }
             .song-album { display: none; }
             .song-actions { display: none; }
-            .player-current { width: 180px; }
+            .player-bar { gap: 8px; padding: 0 10px; }
+            .player-current { width: 160px; }
+            .player-right { width: auto; gap: 0; }
             .player-right .volume-bar { display: none; }
             .album-detail-header { flex-direction: column; align-items: flex-start; gap: 16px; }
             .album-detail-cover { width: 160px; height: 160px; }
@@ -790,7 +796,8 @@
         }
 
         @media (max-width: 480px) {
-            .player-current { width: 140px; }
+            .player-current { width: 124px; gap: 8px; }
+            .control-buttons { gap: 2px; }
             .player-cover { width: 44px; height: 44px; }
             .player-title { font-size: 12px; }
             .player-artist { font-size: 11px; }
@@ -900,7 +907,7 @@
     <!-- 播放器底栏 -->
     <div class="player-bar">
         <div class="player-current">
-            <div class="player-cover" id="player-cover">
+            <div class="player-cover" id="player-cover" title="双击切换歌词">
                 <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px;">♪</div>
             </div>
             <div class="player-info">
@@ -1196,6 +1203,28 @@ const Player = {
         this.audio.addEventListener('play', () => { this.isPlaying = true; this.updatePlayBtn(); });
         this.audio.addEventListener('pause', () => { this.isPlaying = false; this.updatePlayBtn(); });
         this.audio.addEventListener('error', () => { console.error('Audio error'); this.next(); });
+        this.initCoverDoubleTap();
+    },
+
+    // 双击播放器封面（封面/歌手图）切换歌词面板
+    // 移动端底栏空间不足时歌词按钮会被挤出屏幕，双击封面是备用入口
+    initCoverDoubleTap() {
+        const cover = document.getElementById('player-cover');
+        if (!cover) return;
+        let lastTap = 0;
+        cover.addEventListener('click', (e) => {
+            const now = Date.now();
+            if (now - lastTap < 350) {
+                lastTap = 0;
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleLyricsPanel();
+            } else {
+                lastTap = now;
+            }
+        });
+        // 桌面浏览器在两次 click 之后还会补发 dblclick，这里吞掉避免重复触发
+        cover.addEventListener('dblclick', (e) => e.preventDefault());
     },
 
     playQueue(songs, startIndex = 0) {
