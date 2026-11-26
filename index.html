@@ -691,7 +691,7 @@
         .lyrics-overlay {
             position: fixed;
             inset: 0;
-            background: var(--bg);
+            background: #0d0b12;
             display: flex;
             flex-direction: column;
             z-index: 400;
@@ -702,8 +702,30 @@
             transition: transform .3s cubic-bezier(.22,.61,.36,1), opacity .22s ease;
         }
         .lyrics-overlay.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+        /* 封面模糊底 */
+        .lyrics-backdrop {
+            position: absolute;
+            inset: -60px;
+            background-color: #171320;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: blur(46px) saturate(1.7) brightness(.8);
+            transform: scale(1.12);
+            pointer-events: none;
+        }
+        .lyrics-backdrop::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(10,8,14,.5) 0%, rgba(10,8,14,.68) 40%, rgba(10,8,14,.88) 100%);
+        }
+
         .lyrics-panel {
-            background: var(--bg);
+            position: relative;
+            z-index: 1;
+            background: transparent;
             width: 100%;
             max-width: none;
             height: 100%;
@@ -716,88 +738,141 @@
         }
         .lyrics-panel-header {
             display: flex;
-            align-items: center;
-            justify-content: flex-end;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
             flex-shrink: 0;
-            padding: 10px 10px 2px;
+            padding: 14px 10px 2px 20px;
+        }
+        .lyrics-head { min-width: 0; }
+        .lyrics-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-shadow: 0 1px 8px rgba(0,0,0,.45);
+        }
+        .lyrics-artist {
+            margin-top: 3px;
+            font-size: 13px;
+            color: rgba(255,255,255,.55);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .lyrics-close-btn {
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
             width: 34px;
             height: 34px;
             border-radius: 50%;
-            color: var(--text-dim);
+            color: rgba(255,255,255,.6);
             transition: color .15s, background .15s;
         }
-        .lyrics-close-btn:hover { color: var(--text); background: var(--bg-elevated); }
-        .lyrics-close-btn:active { color: var(--text); background: var(--bg-elevated); }
+        .lyrics-close-btn:active { color: #fff; background: rgba(255,255,255,.1); }
 
-        /* 歌词页底部精简控制条 */
-        .lyrics-controls {
+        /* 歌词页底部：进度 + 上一首/播放/下一首 + 随机/循环 */
+        .lyrics-footer {
             flex-shrink: 0;
+            padding: 8px 20px calc(8px + env(safe-area-inset-bottom, 0px));
+        }
+        .lc-label {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
-            border-top: 1px solid var(--border);
-            background: var(--bg);
+            gap: 6px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            letter-spacing: .5px;
+            color: rgba(255,255,255,.5);
         }
-        .lyrics-ctrl-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 34px;
-            height: 34px;
-            flex-shrink: 0;
-            color: var(--text-dim);
+        .lc-chip {
+            border: 1px solid rgba(255,255,255,.28);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 10px;
+            color: rgba(255,255,255,.75);
         }
-        .lyrics-ctrl-btn:active { color: var(--text); }
-        .lyrics-ctrl-btn svg { width: 20px; height: 20px; }
-        .lyrics-play-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            flex-shrink: 0;
-            border-radius: 50%;
-            background: var(--text);
-            color: var(--bg);
-        }
-        .lyrics-play-btn svg { width: 16px; height: 16px; }
-        .lc-progress { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
         .lc-track {
             position: relative;
-            height: 12px;
+            height: 22px;
             display: flex;
             align-items: center;
             cursor: pointer;
+            touch-action: none;
         }
         .lc-track::before {
             content: '';
             position: absolute;
             left: 0; right: 0; top: 50%;
             transform: translateY(-50%);
-            height: 4px;
-            border-radius: 2px;
-            background: var(--bg-elevated);
+            height: 2px;
+            border-radius: 1px;
+            background: rgba(255,255,255,.22);
         }
         .lc-fill {
             position: relative;
-            height: 4px;
+            height: 2px;
             width: 0%;
-            border-radius: 2px;
-            background: var(--accent-gradient);
+            border-radius: 1px;
+            background: rgba(255,255,255,.92);
+        }
+        .lc-fill::after {
+            content: '';
+            position: absolute;
+            right: -4px; top: 50%;
+            transform: translateY(-50%);
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #fff;
         }
         .lc-times {
             display: flex;
             justify-content: space-between;
-            font-size: 11px;
-            color: var(--text-muted);
-            padding: 0 2px;
+            font-size: 12px;
+            color: rgba(255,255,255,.5);
+            font-variant-numeric: tabular-nums;
         }
+        .lc-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 8px;
+        }
+        .lc-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            color: rgba(255,255,255,.92);
+        }
+        .lc-btn:active { color: #fff; }
+        .lc-btn svg { width: 22px; height: 22px; }
+        .lc-play { width: 52px; height: 52px; }
+        .lc-play svg { width: 28px; height: 28px; }
+        .lc-secondary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 2px;
+        }
+        .lc-sec-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            color: rgba(255,255,255,.45);
+            transition: color .15s;
+        }
+        .lc-sec-btn.active { color: #fff; }
+        .lc-sec-btn svg { width: 18px; height: 18px; }
         .lyrics-panel-content {
             flex: 1;
             min-height: 0;
@@ -805,25 +880,34 @@
             max-width: 720px;
             margin: 0 auto;
             overflow-y: auto;
-            padding: 16px 24px 32px;
+            padding: 10px 24px 24px;
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
+            -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 82%, transparent 100%);
+            mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 82%, transparent 100%);
         }
         .lyrics-line {
-            font-size: 16px;
-            line-height: 2.4;
-            color: var(--text-muted);
+            font-size: 17px;
+            line-height: 2.1;
+            color: rgba(255,255,255,.55);
             text-align: center;
-            transition: all .3s;
+            padding: 1px 0;
             cursor: pointer;
+            transition: color .3s, font-size .3s, filter .3s, transform .3s;
+            -webkit-user-select: none;
+            user-select: none;
         }
-        .lyrics-line:hover { color: var(--text-dim); }
+        .lyrics-line.ln1 { color: rgba(255,255,255,.32); filter: blur(.4px); }
+        .lyrics-line.ln2 { color: rgba(255,255,255,.18); filter: blur(1.5px); }
+        .lyrics-line.ln3 { color: rgba(255,255,255,.1); filter: blur(2.6px); }
         .lyrics-line.active {
-            color: var(--accent-light);
-            font-size: 18px;
-            font-weight: 600;
-            transform: scale(1.05);
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            filter: none;
+            transform: scale(1.02);
+            text-shadow: 0 2px 16px rgba(0,0,0,.5);
         }
         .lyrics-plain {
             font-size: 15px;
@@ -834,17 +918,20 @@
         }
         .lyrics-empty, .lyrics-loading {
             text-align: center;
-            color: var(--text-muted);
+            color: rgba(255,255,255,.45);
             padding: 40px 20px;
             font-size: 14px;
         }
 
         @media (max-width: 768px) {
-            .lyrics-panel-content { padding: 8px 18px 28px; }
-            .lyrics-line { font-size: 15px; }
-            .lyrics-line.active { font-size: 17px; }
-            .lyrics-controls { gap: 6px; padding-left: 10px; padding-right: 10px; }
-            .lyrics-ctrl-btn { width: 32px; height: 32px; }
+            .lyrics-panel-content { padding: 6px 18px 20px; }
+            .lyrics-line { font-size: 16px; }
+            .lyrics-line.active { font-size: 21px; }
+            .lyrics-panel-header { padding: 12px 8px 2px 18px; }
+            .lyrics-title { font-size: 19px; }
+            .lyrics-footer { padding: 6px 16px calc(6px + env(safe-area-inset-bottom, 0px)); }
+            .lc-buttons { gap: 26px; margin-top: 6px; }
+            .lc-secondary { gap: 34px; }
         }
 
         /* ===== 移动端适配 ===== */
@@ -1039,10 +1126,15 @@
     </div>
 </div>
 
-<!-- 歌词页（整页滑入） -->
+<!-- 歌词页（整页滑入，封面模糊背景） -->
 <div class="lyrics-overlay" id="lyrics-overlay">
+    <div class="lyrics-backdrop" id="lyrics-backdrop"></div>
     <div class="lyrics-panel">
         <div class="lyrics-panel-header">
+            <div class="lyrics-head">
+                <div class="lyrics-title" id="lyrics-title"></div>
+                <div class="lyrics-artist" id="lyrics-artist"></div>
+            </div>
             <button class="lyrics-close-btn" onclick="Player.closeLyricsPanel()" title="收起歌词">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="4 8 12 16 20 8"/></svg>
             </button>
@@ -1050,24 +1142,33 @@
         <div class="lyrics-panel-content" id="lyrics-panel-content">
             <div class="lyrics-empty">点击歌曲开始播放后显示歌词</div>
         </div>
-        <div class="lyrics-controls">
-            <button class="lyrics-ctrl-btn" onclick="Player.prev()" title="上一首">
-                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
-            </button>
-            <button class="lyrics-play-btn" id="lc-play-btn" onclick="Player.togglePlay()" title="播放/暂停">
-                <svg id="lc-play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            </button>
-            <button class="lyrics-ctrl-btn" onclick="Player.next()" title="下一首">
-                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
-            </button>
-            <div class="lc-progress">
-                <div class="lc-track" id="lc-track" onclick="Player.seekLyrics(event)">
-                    <div class="lc-fill" id="lc-fill"></div>
-                </div>
-                <div class="lc-times">
-                    <span id="lc-time">0:00</span>
-                    <span id="lc-total">0:00</span>
-                </div>
+        <div class="lyrics-footer">
+            <div class="lc-label"><span class="lc-chip">词</span><span id="lc-source">EMBEDDED</span></div>
+            <div class="lc-track" id="lc-track" onclick="Player.seekLyrics(event)">
+                <div class="lc-fill" id="lc-fill"></div>
+            </div>
+            <div class="lc-times">
+                <span id="lc-time">0:00</span>
+                <span id="lc-total">0:00</span>
+            </div>
+            <div class="lc-buttons">
+                <button class="lc-btn" onclick="Player.prev()" title="上一首">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
+                </button>
+                <button class="lc-btn lc-play" id="lc-play-btn" onclick="Player.togglePlay()" title="播放/暂停">
+                    <svg id="lc-play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                <button class="lc-btn" onclick="Player.next()" title="下一首">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
+                </button>
+            </div>
+            <div class="lc-secondary">
+                <button class="lc-sec-btn" id="lc-shuffle" onclick="Player.toggleShuffle()" title="随机播放">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                </button>
+                <button class="lc-sec-btn" id="lc-repeat" onclick="Player.toggleRepeat()" title="循环模式">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                </button>
             </div>
         </div>
     </div>
@@ -1307,6 +1408,21 @@ const Player = {
         this.audio.addEventListener('pause', () => { this.isPlaying = false; this.updatePlayBtn(); });
         this.audio.addEventListener('error', () => { console.error('Audio error'); this.next(); });
         this.initCoverDoubleTap();
+
+        // 点歌词行跳到该句（仅带时间轴的歌词有效）
+        const lyricsPanel = document.getElementById('lyrics-panel-content');
+        if (lyricsPanel) {
+            lyricsPanel.addEventListener('click', (e) => {
+                const line = e.target.closest('.lyrics-line');
+                if (!line) return;
+                const t = parseFloat(line.getAttribute('data-time'));
+                if (isFinite(t) && t >= 0) {
+                    this.audio.currentTime = t;
+                    this.updateProgress();
+                    this.updateLyrics();
+                }
+            });
+        }
     },
 
     // 双击播放器封面（封面/歌手图）切换歌词面板
@@ -1359,6 +1475,20 @@ const Player = {
     async loadLyrics(song) {
         this.lyrics = null;
         const panel = document.getElementById('lyrics-panel-content');
+
+        // 顶部标题 + 封面模糊底
+        const titleEl = document.getElementById('lyrics-title');
+        const artistEl = document.getElementById('lyrics-artist');
+        const backdrop = document.getElementById('lyrics-backdrop');
+        if (titleEl) titleEl.textContent = song.title || '';
+        if (artistEl) artistEl.textContent = song.artist || '';
+        if (backdrop) {
+            const coverUrl = SubsonicAPI.getCoverArtUrl(song.coverArt);
+            backdrop.style.backgroundImage = coverUrl ? `url("${coverUrl}")` : 'none';
+        }
+        const sourceEl = document.getElementById('lc-source');
+        if (sourceEl) sourceEl.textContent = '···';
+
         if (panel) panel.innerHTML = '<div class="lyrics-loading">加载歌词中...</div>';
 
         try {
@@ -1381,6 +1511,7 @@ const Player = {
 
             const hasTimestamps = lines.some(l => l.time >= 0);
             this.lyrics = { synced: hasTimestamps, lines, raw: result.text, estimated: !hasTimestamps };
+            if (sourceEl) sourceEl.textContent = hasTimestamps ? 'EMBEDDED' : 'ONLINE';
 
             if (panel) {
                 panel.innerHTML = lines.map((l, i) =>
@@ -1452,7 +1583,12 @@ const Player = {
 
         const lineEls = panel.querySelectorAll('.lyrics-line');
         lineEls.forEach((el, i) => {
-            el.classList.toggle('active', i === activeIndex);
+            const isActive = i === activeIndex;
+            el.classList.toggle('active', isActive);
+            const d = activeIndex < 0 ? 99 : Math.abs(i - activeIndex);
+            el.classList.toggle('ln1', !isActive && d === 1);
+            el.classList.toggle('ln2', !isActive && d === 2);
+            el.classList.toggle('ln3', !isActive && d >= 3);
         });
 
         if (activeIndex >= 0 && lineEls[activeIndex]) {
@@ -1568,6 +1704,8 @@ const Player = {
     toggleShuffle() {
         this.shuffle = !this.shuffle;
         document.getElementById('shuffle-btn').classList.toggle('active', this.shuffle);
+        const lcShuffle = document.getElementById('lc-shuffle');
+        if (lcShuffle) lcShuffle.classList.toggle('active', this.shuffle);
         showToast(this.shuffle ? '随机播放已开启' : '随机播放已关闭');
     },
 
@@ -1577,6 +1715,8 @@ const Player = {
         this.repeat = modes[(idx + 1) % modes.length];
         const btn = document.getElementById('repeat-btn');
         btn.classList.toggle('active', this.repeat !== 'none');
+        const lcRepeat = document.getElementById('lc-repeat');
+        if (lcRepeat) lcRepeat.classList.toggle('active', this.repeat !== 'none');
         showToast(this.repeat === 'none' ? '循环已关闭' : this.repeat === 'all' ? '列表循环' : '单曲循环');
     },
 
