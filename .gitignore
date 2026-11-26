@@ -1,0 +1,29 @@
+# 依赖
+node_modules/
+package-lock.json
+
+# Cordova 生成物（GitHub Actions 会在服务器端重建）
+apk/platforms/
+apk/plugins/
+apk/www/
+
+# 构建输出
+dist/
+*.apk
+*.aab
+apk/platforms/android/app/build/
+apk/platforms/android/build/
+apk/platforms/android/CordovaLib/build/
+apk/platforms/android/.gradle/
+
+# 图标生成中间文件
+icon-base.png
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志
+*.log
+npm-debug.log*

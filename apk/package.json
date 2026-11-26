@@ -1,0 +1,31 @@
+{
+  "name": "com.saltwave.player",
+  "displayName": "Salt Wave",
+  "version": "1.0.0",
+  "description": "Salt Wave - Navidrome 音乐播放器",
+  "main": "index.js",
+  "scripts": {
+    "build": "cordova build android --debug"
+  },
+  "keywords": [
+    "ecosystem:cordova",
+    "navidrome",
+    "music-player"
+  ],
+  "author": "Salt Wave",
+  "license": "MIT",
+  "devDependencies": {
+    "cordova-android": "^15.1.0",
+    "cordova-plugin-network-information": "^3.1.0",
+    "cordova-plugin-statusbar": "^4.0.0"
+  },
+  "cordova": {
+    "platforms": [
+      "android"
+    ],
+    "plugins": {
+      "cordova-plugin-statusbar": {},
+      "cordova-plugin-network-information": {}
+    }
+  }
+}

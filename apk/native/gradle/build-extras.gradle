@@ -1,0 +1,17 @@
+// build-extras.gradle - Salt Wave 构建补充配置
+// 注意：applicationId / minSdk / targetSdk 由 config.xml 控制，这里不重复设置
+
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packagingOptions {
+        pickFirst '**/libc++_shared.so'
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.8.0'
+}

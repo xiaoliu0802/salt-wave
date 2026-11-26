@@ -1,0 +1,92 @@
+name: Build Salt Wave APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          yes | sdkmanager --licenses || true
+
+      - name: Install Cordova CLI
+        run: npm install -g cordova@13
+
+      - name: Prepare Cordova project
+        run: |
+          set -e
+          cd apk
+          rm -rf www platforms plugins
+          mkdir -p www/libs
+          cp ../index.html www/index.html
+          cp ../libs/crypto-js.min.js www/libs/crypto-js.min.js
+          cordova platform add android
+          cordova plugin add cordova-plugin-statusbar@^4.0.0
+          cordova plugin add cordova-plugin-network-information@^3.0.0
+
+      - name: Apply native customizations
+        run: |
+          set -e
+          cd apk
+
+          cp native/MainActivity/MainActivity.java \
+             platforms/android/app/src/main/java/com/saltwave/player/MainActivity.java
+
+          cp native/gradle/build-extras.gradle \
+             platforms/android/app/build-extras.gradle
+
+          python3 - <<'PY'
+          import pathlib
+          p = pathlib.Path("platforms/android/app/src/main/AndroidManifest.xml")
+          s = p.read_text(encoding="utf-8")
+          if "usesCleartextTraffic" not in s:
+              s = s.replace("<application ", '<application android:usesCleartextTraffic="true" ', 1)
+              p.write_text(s, encoding="utf-8")
+              print("cleartext traffic enabled")
+          else:
+              print("cleartext traffic already enabled")
+          PY
+
+      - name: Generate app icons
+        run: |
+          pip install pillow --quiet
+          python make-icons.py
+
+      - name: Build Debug APK
+        run: |
+          cd apk
+          cordova build android --debug
+
+      - name: Locate build output
+        run: |
+          find apk/platforms/android/app/build/outputs -name "*.apk" -type f
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SaltWave-APK
+          path: apk/platforms/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error

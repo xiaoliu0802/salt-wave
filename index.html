@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>Salt Wave - Navidrome 播放器</title>
+    <!-- CryptoJS for MD5 token authentication (本地文件，离线/APK 可用) -->
+    <script src="libs/crypto-js.min.js"></script>
+    <style>
+        /* ===== CSS 变量 ===== */
+        :root {
+            --bg: #0f0f1e;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #222240;
+            --bg-elevated: #252545;
+            --accent: #6c5ce7;
+            --accent-light: #a29bfe;
+            --accent-gradient: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            --text: #e8e8f0;
+            --text-dim: #8888a0;
+            --text-muted: #555570;
+            --border: #2a2a48;
+            --shadow: rgba(0,0,0,0.3);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --player-height: 80px;
+            --sidebar-width: 240px;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+        }
+
+        /* ===== Reset ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        *::-webkit-scrollbar { width: 6px; height: 6px; }
+        *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        *::-webkit-scrollbar-track { background: transparent; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+        input { font-family: inherit; outline: none; border: none; }
+        img { display: block; }
+
+        /* ===== 登录页 ===== */
+        #login-view {
+            position: fixed; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg);
+            z-index: 1000;
+        }
+        .login-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px 36px;
+            width: 360px;
+            max-width: 90vw;
+            box-shadow: 0 20px 60px var(--shadow);
+        }
+        .login-card h1 {
+            font-size: 28px;
+            text-align: center;
+            margin-bottom: 8px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .login-card .subtitle {
+            text-align: center;
+            color: var(--text-dim);
+            margin-bottom: 32px;
+            font-size: 13px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 15px;
+            transition: box-shadow .2s;
+        }
+        .form-group input:focus { box-shadow: 0 0 0 2px var(--accent); }
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent-gradient);
+            border-radius: var(--radius-sm);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 8px;
+            transition: opacity .2s, transform .1s;
+        }
+        .login-btn:active { transform: scale(.98); }
+        .login-btn:disabled { opacity: .5; }
+        .login-error {
+            color: var(--danger);
+            font-size: 13px;
+            text-align: center;
+            margin-top: 16px;
+            min-height: 20px;
+        }
+
+        /* ===== 主布局 ===== */
+        #app { display: none; height: 100%; flex-direction: column; }
+        #app.active { display: flex; }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ===== 侧边栏 ===== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform .3s ease;
+        }
+        .sidebar-header {
+            padding: 20px 20px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar-header .logo {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: var(--accent-gradient);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .sidebar-header .logo-text {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .nav-menu { flex: 1; padding: 8px 12px; overflow-y: auto; }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            color: var(--text-dim);
+            font-size: 14px;
+            font-weight: 500;
+            width: 100%;
+            text-align: left;
+            transition: all .15s;
+        }
+        .nav-item:hover { background: var(--bg-card-hover); color: var(--text); }
+        .nav-item.active { background: var(--bg-elevated); color: var(--accent-light); }
+        .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+        }
+        .user-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .user-name { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .logout-btn {
+            margin-left: auto;
+            padding: 4px 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+        .logout-btn:hover { color: var(--danger); }
+
+        /* ===== 主内容区 ===== */
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== 顶部栏 ===== */
+        .top-bar {
+            position: sticky;
+            top: 0;
+            background: rgba(15, 15, 30, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 10;
+        }
+        .menu-toggle {
+            display: none;
+            padding: 6px;
+        }
+        .menu-toggle svg { width: 24px; height: 24px; }
+        .search-box {
+            flex: 1;
+            max-width: 480px;
+            position: relative;
+        }
+        .search-box svg {
+            position: absolute;
+            left: 12px; top: 50%;
+            transform: translateY(-50%);
+            width: 18px; height: 18px;
+            color: var(--text-muted);
+        }
+        .search-box input {
+            width: 100%;
+            padding: 9px 16px 9px 38px;
+            background: var(--bg-elevated);
+            border-radius: 20px;
+            color: var(--text);
+            font-size: 13px;
+        }
+        .search-box input:focus { box-shadow: 0 0 0 2px var(--accent); }
+
+        /* ===== 页面内容 ===== */
+        .page-content { padding: 24px; flex: 1; }
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 8px 0 16px;
+        }
+
+        /* ===== 专辑网格 ===== */
+        .album-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+        }
+        .album-card {
+            cursor: pointer;
+            transition: transform .2s;
+        }
+        .album-card:hover { transform: translateY(-4px); }
+        .album-card:hover .album-cover { box-shadow: 0 12px 30px var(--shadow); }
+        .album-cover {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: var(--radius);
+            background: var(--bg-elevated);
+            overflow: hidden;
+            margin-bottom: 8px;
+            position: relative;
+            box-shadow: 0 4px 12px var(--shadow);
+            transition: box-shadow .2s;
+        }
+        .album-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .album-cover .play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity .2s;
+        }
+        .album-card:hover .play-overlay { opacity: 1; }
+        .play-overlay svg { width: 40px; height: 40px; color: #fff; }
+        .album-name {
+            font-size: 13px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .album-artist {
+            font-size: 12px;
+            color: var(--text-dim);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ===== 艺术家列表 ===== */
+        .artist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 20px;
+        }
+        .artist-card {
+            text-align: center;
+            cursor: pointer;
+            transition: transform .2s;
+        }
+        .artist-card:hover { transform: translateY(-4px); }
+        .artist-avatar {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            overflow: hidden;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        .artist-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .artist-name {
+            font-size: 13px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ===== 歌曲列表 ===== */
+        .song-list-header {
+            display: grid;
+            grid-template-columns: 40px 1fr 200px 120px 60px;
+            gap: 12px;
+            padding: 8px 16px;
+            color: var(--text-muted);
+            font-size: 12px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 4px;
+        }
+        .song-item {
+            display: grid;
+            grid-template-columns: 40px 1fr 200px 120px 60px;
+            gap: 12px;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            align-items: center;
+            transition: background .15s;
+        }
+        .song-item:hover { background: var(--bg-card-hover); }
+        .song-item.playing { background: var(--bg-elevated); }
+        .song-item.playing .song-index { color: var(--accent-light); }
+        .song-index { font-size: 13px; color: var(--text-muted); text-align: center; }
+        .song-item:hover .song-index { display: none; }
+        .song-item:hover .song-play-btn { display: flex; }
+        .song-play-btn { display: none; align-items: center; justify-content: center; color: var(--text); }
+        .song-play-btn svg { width: 16px; height: 16px; }
+        .song-info { min-width: 0; }
+        .song-title {
+            font-size: 14px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .song-item.playing .song-title { color: var(--accent-light); }
+        .song-artist {
+            font-size: 12px;
+            color: var(--text-dim);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .song-album {
+            font-size: 13px;
+            color: var(--text-dim);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .song-duration { font-size: 13px; color: var(--text-muted); text-align: right; }
+        .song-actions { display: flex; justify-content: flex-end; gap: 4px; }
+        .song-action-btn { padding: 4px; color: var(--text-muted); }
+        .song-action-btn:hover { color: var(--text); }
+        .song-action-btn svg { width: 16px; height: 16px; }
+
+        /* ===== 播放器底栏 ===== */
+        .player-bar {
+            height: var(--player-height);
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+        .player-current {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            width: 240px;
+            flex-shrink: 0;
+        }
+        .player-cover {
+            width: 56px; height: 56px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-elevated);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .player-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .player-info { min-width: 0; }
+        .player-title {
+            font-size: 13px;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .player-artist {
+            font-size: 12px;
+            color: var(--text-dim);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .player-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+            max-width: 600px;
+        }
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ctrl-btn {
+            padding: 6px;
+            color: var(--text-dim);
+            transition: color .15s;
+        }
+        .ctrl-btn:hover { color: var(--text); }
+        .ctrl-btn.active { color: var(--accent-light); }
+        .ctrl-btn svg { width: 18px; height: 18px; }
+        .play-btn {
+            width: 36px; height: 36px;
+            background: var(--text);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bg);
+        }
+        .play-btn:hover { background: var(--accent-light); }
+        .play-btn svg { width: 18px; height: 18px; }
+
+        .progress-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .progress-time { font-size: 11px; color: var(--text-muted); min-width: 36px; text-align: center; }
+        .progress-track {
+            flex: 1;
+            height: 4px;
+            background: var(--bg-elevated);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            border-radius: 2px;
+            width: 0%;
+            position: relative;
+        }
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: -5px; top: 50%;
+            transform: translateY(-50%);
+            width: 10px; height: 10px;
+            background: var(--accent-light);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity .15s;
+        }
+        .progress-track:hover .progress-fill::after { opacity: 1; }
+
+        .player-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 200px;
+            justify-content: flex-end;
+            flex-shrink: 0;
+        }
+        .volume-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .volume-track {
+            width: 80px;
+            height: 4px;
+            background: var(--bg-elevated);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+        }
+        .volume-fill {
+            height: 100%;
+            background: var(--text);
+            border-radius: 2px;
+            width: 70%;
+        }
+
+        /* ===== 歌单列表 ===== */
+        .playlist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .playlist-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 16px;
+            cursor: pointer;
+            transition: all .2s;
+            border: 1px solid var(--border);
+        }
+        .playlist-card:hover { background: var(--bg-card-hover); border-color: var(--accent); }
+        .playlist-icon {
+            width: 48px; height: 48px;
+            border-radius: var(--radius-sm);
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .playlist-icon svg { width: 24px; height: 24px; color: #fff; }
+        .playlist-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .playlist-count { font-size: 12px; color: var(--text-dim); }
+        .playlist-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .playlist-action-btn {
+            padding: 6px 12px;
+            background: var(--bg-elevated);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .playlist-action-btn:hover { color: var(--text); }
+        .playlist-action-btn.danger:hover { color: var(--danger); }
+
+        /* ===== 空状态 ===== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .empty-state svg { width: 60px; height: 60px; margin-bottom: 16px; opacity: .3; }
+        .empty-state h3 { font-size: 16px; margin-bottom: 4px; color: var(--text-dim); }
+        .empty-state p { font-size: 13px; }
+
+        /* ===== 加载状态 ===== */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--text-muted);
+        }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== Toast ===== */
+        #toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-elevated);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            box-shadow: 0 4px 20px var(--shadow);
+            opacity: 0;
+            transition: opacity .3s, transform .3s;
+            z-index: 999;
+            pointer-events: none;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+
+        /* ===== 专辑详情页 ===== */
+        .album-detail-header {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 32px;
+            align-items: flex-end;
+        }
+        .album-detail-cover {
+            width: 200px;
+            height: 200px;
+            border-radius: var(--radius);
+            box-shadow: 0 12px 40px var(--shadow);
+            flex-shrink: 0;
+            overflow: hidden;
+            background: var(--bg-elevated);
+        }
+        .album-detail-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .album-detail-info { flex: 1; min-width: 0; }
+        .album-detail-type { font-size: 12px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+        .album-detail-name { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+        .album-detail-meta { color: var(--text-dim); font-size: 14px; }
+        .album-play-all {
+            margin-top: 16px;
+            padding: 10px 24px;
+            background: var(--accent-gradient);
+            border-radius: 20px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .album-play-all svg { width: 18px; height: 18px; }
+
+        /* ===== 模态框 ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 400px;
+            max-width: 90vw;
+        }
+        .modal h3 { font-size: 18px; margin-bottom: 20px; }
+        .modal .form-group { margin-bottom: 16px; }
+
+        /* ===== 歌词面板 ===== */
+        .lyrics-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 400;
+        }
+        .lyrics-overlay.active { display: flex; }
+        .lyrics-panel {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            width: 560px;
+            max-width: 90vw;
+            height: 70vh;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .lyrics-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .lyrics-panel-title { font-size: 16px; font-weight: 600; }
+        .lyrics-close-btn {
+            padding: 6px;
+            color: var(--text-dim);
+        }
+        .lyrics-close-btn:hover { color: var(--text); }
+        .lyrics-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            scroll-behavior: smooth;
+        }
+        .lyrics-line {
+            font-size: 16px;
+            line-height: 2.4;
+            color: var(--text-muted);
+            text-align: center;
+            transition: all .3s;
+            cursor: pointer;
+        }
+        .lyrics-line:hover { color: var(--text-dim); }
+        .lyrics-line.active {
+            color: var(--accent-light);
+            font-size: 18px;
+            font-weight: 600;
+            transform: scale(1.05);
+        }
+        .lyrics-plain {
+            font-size: 15px;
+            line-height: 2;
+            color: var(--text-dim);
+            white-space: pre-wrap;
+            text-align: center;
+        }
+        .lyrics-empty, .lyrics-loading {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .lyrics-panel { width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
+            .lyrics-line { font-size: 15px; }
+            .lyrics-line.active { font-size: 17px; }
+        }
+
+        /* ===== 移动端适配 ===== */
+        @media (max-width: 768px) {
+            :root { --player-height: 70px; }
+            .sidebar {
+                position: fixed;
+                left: 0; top: 0; bottom: 0;
+                z-index: 100;
+                transform: translateX(-100%);
+            }
+            .sidebar.open { transform: translateX(0); }
+            .menu-toggle { display: flex; }
+            .album-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; }
+            .artist-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 16px; }
+            .song-list-header { display: none; }
+            .song-item {
+                grid-template-columns: 40px 1fr 50px;
+                gap: 8px;
+            }
+            .song-album { display: none; }
+            .song-actions { display: none; }
+            .player-current { width: 180px; }
+            .player-right .volume-bar { display: none; }
+            .album-detail-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .album-detail-cover { width: 160px; height: 160px; }
+            .album-detail-name { font-size: 24px; }
+            .page-content { padding: 16px; }
+            .top-bar { padding: 10px 16px; }
+            .progress-track { height: 6px; }
+        }
+
+        @media (max-width: 480px) {
+            .player-current { width: 140px; }
+            .player-cover { width: 44px; height: 44px; }
+            .player-title { font-size: 12px; }
+            .player-artist { font-size: 11px; }
+            .ctrl-btn svg { width: 16px; height: 16px; }
+            .play-btn { width: 32px; height: 32px; }
+        }
+
+        /* ===== 遮罩 ===== */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 99;
+        }
+        .sidebar-overlay.active { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- ===== 登录页 ===== -->
+<div id="login-view">
+    <div class="login-card">
+        <h1>Salt Wave</h1>
+        <p class="subtitle">连接你的 Navidrome 音乐服务器</p>
+        <form id="login-form" onsubmit="return false;">
+            <div class="form-group">
+                <label>服务器地址</label>
+                <input type="url" id="server-url" placeholder="https://music.example.com" autocomplete="url">
+            </div>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="username" placeholder="用户名" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="password" placeholder="密码" autocomplete="current-password">
+            </div>
+            <button type="submit" class="login-btn" id="login-btn">连接</button>
+            <div class="login-error" id="login-error"></div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== 主应用 ===== -->
+<div id="app">
+    <div class="main-container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🎵</div>
+                <div class="logo-text">Salt Wave</div>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-view="home" onclick="App.navigate('home')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    首页
+                </button>
+                <button class="nav-item" data-view="albums" onclick="App.navigate('albums')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                    专辑
+                </button>
+                <button class="nav-item" data-view="artists" onclick="App.navigate('artists')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                    艺术家
+                </button>
+                <button class="nav-item" data-view="songs" onclick="App.navigate('songs')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    歌曲
+                </button>
+                <button class="nav-item" data-view="playlists" onclick="App.navigate('playlists')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    歌单
+                </button>
+                <button class="nav-item" data-view="search" onclick="App.navigate('search')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    搜索
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div class="user-name" id="user-name">User</div>
+                    <button class="logout-btn" onclick="App.logout()">退出</button>
+                </div>
+            </div>
+        </aside>
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="App.toggleSidebar(false)"></div>
+
+        <!-- 内容区 -->
+        <div class="content-area">
+            <div class="top-bar">
+                <button class="menu-toggle" onclick="App.toggleSidebar()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="search-input" placeholder="搜索歌曲、专辑、艺术家..." oninput="App.handleSearch(event)">
+                </div>
+            </div>
+            <div class="page-content" id="page-content">
+                <!-- 动态内容 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 播放器底栏 -->
+    <div class="player-bar">
+        <div class="player-current">
+            <div class="player-cover" id="player-cover">
+                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px;">♪</div>
+            </div>
+            <div class="player-info">
+                <div class="player-title" id="player-title">未播放</div>
+                <div class="player-artist" id="player-artist"></div>
+            </div>
+        </div>
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button class="ctrl-btn" id="shuffle-btn" onclick="Player.toggleShuffle()" title="随机播放">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                </button>
+                <button class="ctrl-btn" onclick="Player.prev()" title="上一首">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
+                </button>
+                <button class="play-btn" id="play-btn" onclick="Player.togglePlay()" title="播放/暂停">
+                    <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+                <button class="ctrl-btn" onclick="Player.next()" title="下一首">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
+                </button>
+                <button class="ctrl-btn" id="repeat-btn" onclick="Player.toggleRepeat()" title="循环模式">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                </button>
+            </div>
+            <div class="progress-bar">
+                <span class="progress-time" id="current-time">0:00</span>
+                <div class="progress-track" id="progress-track" onclick="Player.seek(event)">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <span class="progress-time" id="total-time">0:00</span>
+            </div>
+        </div>
+        <div class="player-right">
+            <button class="ctrl-btn" id="lyrics-btn" onclick="Player.toggleLyricsPanel()" title="歌词">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            </button>
+            <div class="volume-bar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-dim)"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                <div class="volume-track" id="volume-track" onclick="Player.setVolume(event)">
+                    <div class="volume-fill" id="volume-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 歌词面板 -->
+<div class="lyrics-overlay" id="lyrics-overlay" onclick="Player.closeLyricsPanel()">
+    <div class="lyrics-panel" onclick="event.stopPropagation()">
+        <div class="lyrics-panel-header">
+            <span class="lyrics-panel-title">歌词</span>
+            <button class="lyrics-close-btn" onclick="Player.closeLyricsPanel()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="lyrics-panel-content" id="lyrics-panel-content">
+            <div class="lyrics-empty">点击歌曲开始播放后显示歌词</div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建歌单模态框 -->
+<div class="modal-overlay" id="playlist-modal">
+    <div class="modal">
+        <h3>新建歌单</h3>
+        <div class="form-group">
+            <label>歌单名称</label>
+            <input type="text" id="playlist-name-input" placeholder="输入歌单名称">
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+            <button class="playlist-action-btn" onclick="App.closePlaylistModal()">取消</button>
+            <button class="login-btn" style="width:auto;padding:8px 20px;font-size:14px;" onclick="App.createPlaylist()">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- 音频元素 -->
+<audio id="audio-player" preload="auto" crossorigin="anonymous"></audio>
+
+<script>
+// ========================================
+//  Subsonic API 客户端 — 纯前端，无后端代理
+// ========================================
+const SubsonicAPI = {
+    serverUrl: '',
+    username: '',
+    password: '',
+    clientName: 'SaltWave',
+
+    init(serverUrl, username, password) {
+        this.serverUrl = serverUrl.replace(/\/+$/, '');
+        this.username = username;
+        this.password = password;
+    },
+
+    _genSalt() {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let salt = '';
+        for (let i = 0; i < 12; i++) salt += chars[Math.floor(Math.random() * chars.length)];
+        return salt;
+    },
+
+    _md5(str) {
+        return CryptoJS.MD5(str).toString();
+    },
+
+    _buildParams(extra = {}) {
+        const salt = this._genSalt();
+        const token = this._md5(this.password + salt);
+        const params = new URLSearchParams();
+        params.append('u', this.username);
+        params.append('t', token);
+        params.append('s', salt);
+        params.append('v', '1.16.1');
+        params.append('c', this.clientName);
+        params.append('f', 'json');
+        for (const [key, value] of Object.entries(extra)) {
+            params.append(key, value);
+        }
+        return params.toString();
+    },
+
+    async _call(method, params = {}) {
+        const url = `${this.serverUrl}/rest/${method}?${this._buildParams(params)}`;
+        let res;
+        try {
+            res = await fetch(url);
+        } catch (e) {
+            throw new Error('无法连接服务器，请检查地址是否正确');
+        }
+        if (!res.ok) throw new Error(`服务器返回错误 ${res.status}`);
+        const data = await res.json();
+        if (data['subsonic-response'].status === 'failed') {
+            throw new Error(data['subsonic-response'].error?.message || 'API错误');
+        }
+        return data['subsonic-response'];
+    },
+
+    async ping() {
+        return this._call('ping');
+    },
+
+    async getAlbumList(type = 'newest', size = 24) {
+        const resp = await this._call('getAlbumList2', { type, size });
+        return resp.albumList2?.album || [];
+    },
+
+    async getArtists() {
+        const resp = await this._call('getArtists');
+        const artists = [];
+        const indexes = resp.artists?.index || [];
+        for (const idx of indexes) {
+            for (const artist of (idx.artist || [])) {
+                artists.push(artist);
+            }
+        }
+        return artists;
+    },
+
+    async getAlbum(id) {
+        const resp = await this._call('getAlbum', { id });
+        return resp.album;
+    },
+
+    async getArtist(id) {
+        const resp = await this._call('getArtist', { id });
+        return resp.artist;
+    },
+
+    async getRandomSongs(size = 50) {
+        const resp = await this._call('getRandomSongs', { size });
+        return resp.randomSongs?.song || [];
+    },
+
+    async search(query) {
+        const resp = await this._call('search3', {
+            query,
+            artistCount: 10,
+            albumCount: 20,
+            songCount: 30
+        });
+        return resp.searchResult3 || {};
+    },
+
+    async getPlaylists() {
+        const resp = await this._call('getPlaylists');
+        return resp.playlists?.playlist || [];
+    },
+
+    async getPlaylist(id) {
+        const resp = await this._call('getPlaylist', { id });
+        return resp.playlist;
+    },
+
+    async createPlaylist(name, songIds = []) {
+        const params = { name };
+        songIds.forEach((id, i) => params[`songId[${i}]`] = id);
+        return this._call('createPlaylist', params);
+    },
+
+    async deletePlaylist(id) {
+        return this._call('deletePlaylist', { id });
+    },
+
+    getStreamUrl(id) {
+        const salt = this._genSalt();
+        const token = this._md5(this.password + salt);
+        const params = new URLSearchParams();
+        params.append('u', this.username);
+        params.append('t', token);
+        params.append('s', salt);
+        params.append('v', '1.16.1');
+        params.append('c', this.clientName);
+        params.append('id', id);
+        return `${this.serverUrl}/rest/stream?${params.toString()}`;
+    },
+
+    getCoverArtUrl(id, size = 300) {
+        if (!id) return '';
+        const salt = this._genSalt();
+        const token = this._md5(this.password + salt);
+        const params = new URLSearchParams();
+        params.append('u', this.username);
+        params.append('t', token);
+        params.append('s', salt);
+        params.append('v', '1.16.1');
+        params.append('c', this.clientName);
+        params.append('id', id);
+        params.append('size', size);
+        return `${this.serverUrl}/rest/getCoverArt?${params.toString()}`;
+    },
+
+    async getLyrics(songId, artist, title) {
+        // First: try OpenSubsonic getLyricsBySongId (returns structured lyrics with timestamps)
+        try {
+            const resp = await this._call('getLyricsBySongId', { id: songId });
+            const lyricsList = resp.lyricsList;
+            if (lyricsList && lyricsList.structuredLyrics) {
+                const structured = Array.isArray(lyricsList.structuredLyrics) ? lyricsList.structuredLyrics : [lyricsList.structuredLyrics];
+                let best = structured.find(s => s.synced) || structured[0];
+                if (best && best.line) {
+                    const offset = best.offset ? best.offset : 0;
+                    const lines = best.line.map(l => {
+                        const time = (l.start !== undefined) ? (l.start + offset) / 1000 : -1;
+                        return { time, text: l.value || '' };
+                    });
+                    const synced = best.synced === true;
+                    const text = lines.map(l => l.text).join('\n');
+                    return { synced, text, lines };
+                }
+            }
+        } catch (e) {
+            // getLyricsBySongId not supported, fall through
+        }
+
+        // Fallback: legacy getLyrics by artist/title (returns plain text, no timestamps)
+        try {
+            const resp = await this._call('getLyrics', { artist: artist || '', title: title || '' });
+            const text = resp.lyrics?.value || resp.lyrics?._ || '';
+            if (text) return { synced: false, text };
+        } catch (e) {
+            // No lyrics available
+        }
+
+        return null;
+    }
+};
+
+// ========================================
+//  播放器控制
+// ========================================
+const Player = {
+    audio: null,
+    queue: [],
+    currentIndex: -1,
+    isPlaying: false,
+    shuffle: false,
+    repeat: 'none',
+    volume: 0.7,
+    lyrics: null,
+    lyricsPanelOpen: false,
+
+    init() {
+        this.audio = document.getElementById('audio-player');
+        this.audio.volume = this.volume;
+        this.audio.addEventListener('timeupdate', () => { this.updateProgress(); this.updateLyrics(); });
+        this.audio.addEventListener('ended', () => this.handleEnded());
+        this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
+        this.audio.addEventListener('play', () => { this.isPlaying = true; this.updatePlayBtn(); });
+        this.audio.addEventListener('pause', () => { this.isPlaying = false; this.updatePlayBtn(); });
+        this.audio.addEventListener('error', () => { console.error('Audio error'); this.next(); });
+    },
+
+    playQueue(songs, startIndex = 0) {
+        this.queue = songs;
+        this.currentIndex = startIndex;
+        this.loadAndPlay();
+    },
+
+    addToQueue(song) {
+        this.queue.push(song);
+        if (this.currentIndex === -1) {
+            this.currentIndex = this.queue.length - 1;
+            this.loadAndPlay();
+        }
+        showToast(`已添加到队列：${song.title}`);
+    },
+
+    async loadAndPlay() {
+        if (this.currentIndex < 0 || this.currentIndex >= this.queue.length) return;
+        const song = this.queue[this.currentIndex];
+        const url = SubsonicAPI.getStreamUrl(song.id);
+        this.audio.src = url;
+        this.audio.play().catch(e => console.error('Play failed:', e));
+        this.updateUI(song);
+        this.loadLyrics(song);
+        App.highlightPlayingSong();
+    },
+
+    async loadLyrics(song) {
+        this.lyrics = null;
+        const panel = document.getElementById('lyrics-panel-content');
+        if (panel) panel.innerHTML = '<div class="lyrics-loading">加载歌词中...</div>';
+
+        try {
+            const result = await SubsonicAPI.getLyrics(song.id, song.artist, song.title);
+            if (!result || !result.text) {
+                this.lyrics = null;
+                if (panel) panel.innerHTML = '<div class="lyrics-empty">暂无歌词</div>';
+                return;
+            }
+
+            let lines = result.lines || [];
+            if (lines.length === 0) {
+                if (result.synced) {
+                    lines = this.parseLRC(result.text);
+                }
+                if (lines.length === 0) {
+                    lines = result.text.split('\n').map(l => l.trim()).filter(l => l.length > 0).map(text => ({ time: -1, text }));
+                }
+            }
+
+            const hasTimestamps = lines.some(l => l.time >= 0);
+            this.lyrics = { synced: hasTimestamps, lines, raw: result.text, estimated: !hasTimestamps };
+
+            if (panel) {
+                panel.innerHTML = lines.map((l, i) =>
+                    `<div class="lyrics-line" data-index="${i}" data-time="${l.time}">${escapeHtml(l.text) || '&nbsp;'}</div>`
+                ).join('');
+            }
+        } catch (e) {
+            console.error('Lyrics error:', e);
+            if (panel) panel.innerHTML = '<div class="lyrics-empty">歌词加载失败</div>';
+        }
+    },
+
+    parseLRC(text) {
+        const lines = [];
+        const lrcRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)/g;
+        for (const rawLine of text.split('\n')) {
+            let match;
+            lrcRegex.lastIndex = 0;
+            const timestamps = [];
+            let lyricText = '';
+            let m;
+            lrcRegex.lastIndex = 0;
+            while ((m = lrcRegex.exec(rawLine)) !== null) {
+                const min = parseInt(m[1]);
+                const sec = parseInt(m[2]);
+                const ms = m[3] ? parseInt(m[3]) * (m[3].length === 3 ? 1 : 10) : 0;
+                timestamps.push(min * 60 + sec + ms / 1000);
+                lyricText = m[4] || '';
+            }
+            if (timestamps.length > 0) {
+                for (const t of timestamps) {
+                    lines.push({ time: t, text: lyricText.trim() });
+                }
+            } else if (rawLine.trim()) {
+                lines.push({ time: -1, text: rawLine.trim() });
+            }
+        }
+        lines.sort((a, b) => a.time - b.time);
+        return lines;
+    },
+
+    updateLyrics() {
+        if (!this.lyrics || !this.lyricsPanelOpen) return;
+        const cur = this.audio.currentTime || 0;
+        const dur = this.audio.duration || 0;
+        const lines = this.lyrics.lines;
+        const panel = document.getElementById('lyrics-panel-content');
+        if (!panel) return;
+
+        let activeIndex = -1;
+
+        if (this.lyrics.synced) {
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].time >= 0 && lines[i].time <= cur) {
+                    activeIndex = i;
+                } else if (lines[i].time > cur) {
+                    break;
+                }
+            }
+        } else if (this.lyrics.estimated && dur > 0) {
+            const effectiveLines = lines;
+            const totalLines = effectiveLines.length;
+            if (totalLines > 0) {
+                const progress = cur / dur;
+                const adjustedProgress = Math.max(0, Math.min(1, progress));
+                activeIndex = Math.floor(adjustedProgress * (totalLines - 1));
+            }
+        }
+
+        const lineEls = panel.querySelectorAll('.lyrics-line');
+        lineEls.forEach((el, i) => {
+            el.classList.toggle('active', i === activeIndex);
+        });
+
+        if (activeIndex >= 0 && lineEls[activeIndex]) {
+            const activeEl = lineEls[activeIndex];
+            const targetScroll = activeEl.offsetTop - panel.clientHeight / 2 + activeEl.clientHeight / 2;
+            const currentScroll = panel.scrollTop;
+            const diff = targetScroll - currentScroll;
+            if (Math.abs(diff) > 2) {
+                panel.scrollTop = currentScroll + diff * 0.15;
+            }
+        }
+    },
+
+    toggleLyricsPanel() {
+        const overlay = document.getElementById('lyrics-overlay');
+        if (!overlay) return;
+        this.lyricsPanelOpen = !this.lyricsPanelOpen;
+        overlay.classList.toggle('active', this.lyricsPanelOpen);
+        if (this.lyricsPanelOpen && this.lyrics) {
+            this.updateLyrics();
+        }
+    },
+
+    closeLyricsPanel() {
+        this.lyricsPanelOpen = false;
+        const overlay = document.getElementById('lyrics-overlay');
+        if (overlay) overlay.classList.remove('active');
+    },
+
+    togglePlay() {
+        if (this.currentIndex < 0) {
+            if (this.queue.length > 0) { this.currentIndex = 0; this.loadAndPlay(); }
+            return;
+        }
+        if (this.isPlaying) this.audio.pause();
+        else this.audio.play();
+    },
+
+    next() {
+        if (this.queue.length === 0) return;
+        if (this.shuffle) {
+            this.currentIndex = Math.floor(Math.random() * this.queue.length);
+        } else {
+            this.currentIndex++;
+            if (this.currentIndex >= this.queue.length) {
+                if (this.repeat === 'all') this.currentIndex = 0;
+                else { this.currentIndex = this.queue.length - 1; return; }
+            }
+        }
+        this.loadAndPlay();
+    },
+
+    prev() {
+        if (this.queue.length === 0) return;
+        if (this.audio.currentTime > 3) { this.audio.currentTime = 0; return; }
+        this.currentIndex--;
+        if (this.currentIndex < 0) {
+            if (this.repeat === 'all') this.currentIndex = this.queue.length - 1;
+            else this.currentIndex = 0;
+        }
+        this.loadAndPlay();
+    },
+
+    handleEnded() {
+        if (this.repeat === 'one') {
+            this.audio.currentTime = 0;
+            this.audio.play();
+        } else {
+            this.next();
+        }
+    },
+
+    seek(event) {
+        const track = document.getElementById('progress-track');
+        const rect = track.getBoundingClientRect();
+        let percent = (event.clientX - rect.left) / rect.width;
+        percent = Math.max(0, Math.min(1, percent));
+        const dur = this.audio.duration;
+        if (dur && isFinite(dur) && dur > 0) {
+            this.audio.currentTime = percent * dur;
+            this.updateProgress();
+            this.updateLyrics();
+        }
+    },
+
+    setVolume(event) {
+        const track = document.getElementById('volume-track');
+        const rect = track.getBoundingClientRect();
+        const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+        this.volume = percent;
+        this.audio.volume = percent;
+        document.getElementById('volume-fill').style.width = (percent * 100) + '%';
+    },
+
+    toggleShuffle() {
+        this.shuffle = !this.shuffle;
+        document.getElementById('shuffle-btn').classList.toggle('active', this.shuffle);
+        showToast(this.shuffle ? '随机播放已开启' : '随机播放已关闭');
+    },
+
+    toggleRepeat() {
+        const modes = ['none', 'all', 'one'];
+        const idx = modes.indexOf(this.repeat);
+        this.repeat = modes[(idx + 1) % modes.length];
+        const btn = document.getElementById('repeat-btn');
+        btn.classList.toggle('active', this.repeat !== 'none');
+        showToast(this.repeat === 'none' ? '循环已关闭' : this.repeat === 'all' ? '列表循环' : '单曲循环');
+    },
+
+    updateProgress() {
+        const cur = this.audio.currentTime || 0;
+        const dur = this.audio.duration || 0;
+        const percent = dur > 0 ? (cur / dur) * 100 : 0;
+        document.getElementById('progress-fill').style.width = percent + '%';
+        document.getElementById('current-time').textContent = formatTime(cur);
+    },
+
+    updateDuration() {
+        document.getElementById('total-time').textContent = formatTime(this.audio.duration);
+    },
+
+    updatePlayBtn() {
+        const icon = document.getElementById('play-icon');
+        if (this.isPlaying) {
+            icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+        } else {
+            icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+        }
+    },
+
+    updateUI(song) {
+        document.getElementById('player-title').textContent = song.title || '未知';
+        document.getElementById('player-artist').textContent = song.artist || '';
+        const coverEl = document.getElementById('player-cover');
+        const coverUrl = SubsonicAPI.getCoverArtUrl(song.coverArt);
+        if (coverUrl) {
+            coverEl.innerHTML = `<img src="${coverUrl}" alt="" onerror="this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px;\\'>♪</div>'">`;
+        } else {
+            coverEl.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px;">♪</div>';
+        }
+    },
+
+    getCurrentSongId() {
+        if (this.currentIndex >= 0 && this.currentIndex < this.queue.length) {
+            return this.queue[this.currentIndex].id;
+        }
+        return null;
+    }
+};
+
+// ========================================
+//  应用逻辑
+// ========================================
+const App = {
+    currentView: 'home',
+    cache: { albums: [], artists: [], songs: [], playlists: [] },
+    searchTimer: null,
+
+    async login() {
+        const serverUrlRaw = document.getElementById('server-url').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const errorEl = document.getElementById('login-error');
+        const btn = document.getElementById('login-btn');
+
+        if (!serverUrlRaw || !username || !password) {
+            errorEl.textContent = '请填写所有字段';
+            return;
+        }
+
+        // 自动补全协议前缀
+        let serverUrl = serverUrlRaw;
+        if (!/^https?:\/\//i.test(serverUrl)) {
+            serverUrl = 'http://' + serverUrl;
+        }
+        serverUrl = serverUrl.replace(/\/+$/, '');
+
+        btn.disabled = true;
+        btn.textContent = '连接中...';
+        errorEl.textContent = '';
+
+        try {
+            SubsonicAPI.init(serverUrl, username, password);
+            await SubsonicAPI.ping();
+
+            localStorage.setItem('navidrome_server', serverUrl);
+            localStorage.setItem('navidrome_user', username);
+            localStorage.setItem('navidrome_pass', password);
+
+            this.showApp();
+            this.navigate('home');
+        } catch (e) {
+            let msg = e.message || '';
+            if (msg.includes('Failed to fetch') || msg.includes('无法连接')) {
+                errorEl.textContent = '无法连接服务器，请检查地址是否正确，确保服务器已开启 CORS';
+            } else if (msg.includes('Wrong username or password') || msg.includes('401') || msg.includes('403')) {
+                errorEl.textContent = '用户名或密码错误';
+            } else {
+                errorEl.textContent = '连接失败：' + msg;
+            }
+            btn.disabled = false;
+            btn.textContent = '连接';
+        }
+    },
+
+    autoLogin() {
+        const server = localStorage.getItem('navidrome_server');
+        const user = localStorage.getItem('navidrome_user');
+        const pass = localStorage.getItem('navidrome_pass');
+        if (server && user && pass) {
+            SubsonicAPI.init(server, user, pass);
+            SubsonicAPI.ping().then(() => {
+                this.showApp();
+                this.navigate('home');
+            }).catch(() => {});
+        }
+    },
+
+    showApp() {
+        document.getElementById('login-view').style.display = 'none';
+        document.getElementById('app').classList.add('active');
+        document.getElementById('user-name').textContent = SubsonicAPI.username;
+        document.getElementById('user-avatar').textContent = SubsonicAPI.username.charAt(0).toUpperCase();
+    },
+
+    logout() {
+        localStorage.removeItem('navidrome_server');
+        localStorage.removeItem('navidrome_user');
+        localStorage.removeItem('navidrome_pass');
+        location.reload();
+    },
+
+    navigate(view) {
+        this.currentView = view;
+        this.navStack = this.navStack || [];
+        if (this.navStack[this.navStack.length - 1] !== view) {
+            this.navStack.push(view);
+            if (this.navStack.length > 30) this.navStack.shift();
+        }
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.toggle('active', el.dataset.view === view);
+        });
+        this.toggleSidebar(false);
+        const content = document.getElementById('page-content');
+
+        switch (view) {
+            case 'home': this.renderHome(); break;
+            case 'albums': this.renderAlbums(); break;
+            case 'artists': this.renderArtists(); break;
+            case 'songs': this.renderSongs(); break;
+            case 'playlists': this.renderPlaylists(); break;
+            case 'search': this.focusSearch(); break;
+        }
+    },
+
+    async renderHome() {
+        const content = document.getElementById('page-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        try {
+            const [albums, songs] = await Promise.all([
+                SubsonicAPI.getAlbumList('newest', 24),
+                SubsonicAPI.getRandomSongs(20)
+            ]);
+            this.cache.albums = albums;
+            this.cache.songs = songs;
+
+            content.innerHTML = `
+                <h1 class="page-title">首页</h1>
+                <h2 class="section-title">最新专辑</h2>
+                <div class="album-grid" id="home-albums"></div>
+                <h2 class="section-title" style="margin-top:32px;">随机推荐</h2>
+                <div id="home-songs"></div>
+            `;
+
+            const albumsEl = document.getElementById('home-albums');
+            if (albums.length === 0) {
+                albumsEl.innerHTML = this.emptyState('暂无专辑');
+            } else {
+                albumsEl.innerHTML = albums.map(a => this.albumCardHTML(a)).join('');
+            }
+
+            const songsEl = document.getElementById('home-songs');
+            if (songs.length === 0) {
+                songsEl.innerHTML = this.emptyState('暂无歌曲');
+            } else {
+                songsEl.innerHTML = this.songListHTML(songs);
+            }
+        } catch (e) {
+            content.innerHTML = this.emptyState('加载失败：' + e.message);
+        }
+    },
+
+    async renderAlbums() {
+        const content = document.getElementById('page-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        try {
+            const albums = await SubsonicAPI.getAlbumList('newest', 100);
+            this.cache.albums = albums;
+            content.innerHTML = `<h1 class="page-title">专辑</h1><div class="album-grid">${albums.map(a => this.albumCardHTML(a)).join('')}</div>`;
+            if (albums.length === 0) content.innerHTML = `<h1 class="page-title">专辑</h1>${this.emptyState('暂无专辑')}`;
+        } catch (e) {
+            content.innerHTML = this.emptyState('加载失败：' + e.message);
+        }
+    },
+
+    async renderArtists() {
+        const content = document.getElementById('page-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        try {
+            const artists = await SubsonicAPI.getArtists();
+            this.cache.artists = artists;
+            content.innerHTML = `<h1 class="page-title">艺术家</h1><div class="artist-grid">${artists.map(a => this.artistCardHTML(a)).join('')}</div>`;
+            if (artists.length === 0) content.innerHTML = `<h1 class="page-title">艺术家</h1>${this.emptyState('暂无艺术家')}`;
+        } catch (e) {
+            content.innerHTML = this.emptyState('加载失败：' + e.message);
+        }
+    },
+
+    async renderSongs() {
+        const content = document.getElementById('page-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        try {
+            const songs = await SubsonicAPI.getRandomSongs(100);
+            this.cache.songs = songs;
+            content.innerHTML = `<h1 class="page-title">歌曲</h1>${this.songListHTML(songs)}`;
+            if (songs.length === 0) content.innerHTML = `<h1 class="page-title">歌曲</h1>${this.emptyState('暂无歌曲')}`;
+        } catch (e) {
+            content.innerHTML = this.emptyState('加载失败：' + e.message);
+        }
+    },
+
+    async renderPlaylists() {
+        const content = document.getElementById('page-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        try {
+            const playlists = await SubsonicAPI.getPlaylists();
+            this.cache.playlists = playlists;
+            content.innerHTML = `
+                <h1 class="page-title">歌单</h1>
+                <div style="margin-bottom:20px;">
+                    <button class="album-play-all" onclick="App.openPlaylistModal()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        新建歌单
+                    </button>
+                </div>
+                <div class="playlist-grid" id="playlists-grid"></div>
+            `;
+            const grid = document.getElementById('playlists-grid');
+            if (playlists.length === 0) {
+                grid.innerHTML = this.emptyState('暂无歌单，点击上方按钮创建');
+            } else {
+                grid.innerHTML = playlists.map(p => `
+                    <div class="playlist-card" onclick="App.openPlaylist('${p.id}')">
+                        <div class="playlist-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        </div>
+                        <div class="playlist-name">${escapeHtml(p.name)}</div>
+                        <div class="playlist-count">${p.songCount || 0} 首</div>
+                        <div class="playlist-actions">
+                            <button class="playlist-action-btn danger" onclick="event.stopPropagation();App.deletePlaylist('${p.id}','${escapeHtml(p.name)}')">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {
+            content.innerHTML = this.emptyState('加载失败：' + e.message);
+        }
+    },
+
+    async openAlbum(id) {
+        const content = document.getElementById('page-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        try {
+            const album = await SubsonicAPI.getAlbum(id);
+            const songs = album.song || [];
+            content.innerHTML = `
+                <div style="margin-bottom:16px;">
+                    <button class="ctrl-btn" onclick="App.navigate('albums')" style="font-size:14px;display:inline-flex;align-items:center;gap:4px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        返回
+                    </button>
+                </div>
+                <div class="album-detail-header">
+                    <div class="album-detail-cover">
+                        ${album.coverArt ? `<img src="${SubsonicAPI.getCoverArtUrl(album.coverArt, 400)}" alt="" onerror="this.style.display='none'">` : ''}
+                    </div>
+                    <div class="album-detail-info">
+                        <div class="album-detail-type">专辑</div>
+                        <div class="album-detail-name">${escapeHtml(album.name || '未知专辑')}</div>
+                        <div class="album-detail-meta">${escapeHtml(album.artist || '')}${album.year ? ' · ' + album.year : ''} · ${songs.length} 首</div>
+                        <button class="album-play-all" onclick="Player.playQueue(${JSON.stringify(songs.map(s => ({id:s.id,title:s.title,artist:s.artist,album:s.album,coverArt:s.coverArt,duration:s.duration}))).replace(/"/g,'&quot;')})">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            播放全部
+                        </button>
+                    </div>
+                </div>
+                ${this.songListHTML(songs)}
+            `;
+        } catch (e) {
+            content.innerHTML = this.emptyState('加载失败：' + e.message);
+        }
+    },
+
+    async openPlaylist(id) {
+        const content = document.getElementById('page-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        try {
+            const playlist = await SubsonicAPI.getPlaylist(id);
+            const songs = playlist.entry || [];
+            content.innerHTML = `
+                <div style="margin-bottom:16px;">
+                    <button class="ctrl-btn" onclick="App.navigate('playlists')" style="font-size:14px;display:inline-flex;align-items:center;gap:4px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        返回
+                    </button>
+                </div>
+                <h1 class="page-title">${escapeHtml(playlist.name || '歌单')}</h1>
+                ${songs.length > 0 ? `<button class="album-play-all" onclick="Player.playQueue(${JSON.stringify(songs.map(s => ({id:s.id,title:s.title,artist:s.artist,album:s.album,coverArt:s.coverArt,duration:s.duration}))).replace(/"/g,'&quot;')})" style="margin-bottom:20px;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    播放全部
+                </button>` : ''}
+                ${songs.length > 0 ? this.songListHTML(songs) : this.emptyState('歌单为空')}
+            `;
+        } catch (e) {
+            content.innerHTML = this.emptyState('加载失败：' + e.message);
+        }
+    },
+
+    handleSearch(event) {
+        const query = event.target.value.trim();
+        if (this.searchTimer) clearTimeout(this.searchTimer);
+        if (!query) return;
+        this.searchTimer = setTimeout(() => this.doSearch(query), 400);
+    },
+
+    async doSearch(query) {
+        const content = document.getElementById('page-content');
+        content.innerHTML = '<div class="loading"><div class="spinner"></div>搜索中...</div>';
+        try {
+            const result = await SubsonicAPI.search(query);
+            const artists = result.artist || [];
+            const albums = result.album || [];
+            const songs = result.song || [];
+
+            if (artists.length === 0 && albums.length === 0 && songs.length === 0) {
+                content.innerHTML = `<h1 class="page-title">搜索：${escapeHtml(query)}</h1>${this.emptyState('没有找到结果')}`;
+                return;
+            }
+
+            let html = `<h1 class="page-title">搜索：${escapeHtml(query)}</h1>`;
+            if (songs.length > 0) {
+                html += `<h2 class="section-title">歌曲</h2>${this.songListHTML(songs)}`;
+            }
+            if (albums.length > 0) {
+                html += `<h2 class="section-title" style="margin-top:24px;">专辑</h2><div class="album-grid">${albums.map(a => this.albumCardHTML(a)).join('')}</div>`;
+            }
+            if (artists.length > 0) {
+                html += `<h2 class="section-title" style="margin-top:24px;">艺术家</h2><div class="artist-grid">${artists.map(a => this.artistCardHTML(a)).join('')}</div>`;
+            }
+            content.innerHTML = html;
+        } catch (e) {
+            content.innerHTML = this.emptyState('搜索失败：' + e.message);
+        }
+    },
+
+    focusSearch() {
+        document.getElementById('search-input').focus();
+        if (!document.getElementById('page-content').querySelector('.empty-state')) {
+            document.getElementById('page-content').innerHTML = `<h1 class="page-title">搜索</h1>${this.emptyState('在上方搜索框输入关键词')}`;
+        }
+    },
+
+    openPlaylistModal() {
+        document.getElementById('playlist-modal').classList.add('active');
+        document.getElementById('playlist-name-input').focus();
+    },
+
+    closePlaylistModal() {
+        document.getElementById('playlist-modal').classList.remove('active');
+        document.getElementById('playlist-name-input').value = '';
+    },
+
+    async createPlaylist() {
+        const name = document.getElementById('playlist-name-input').value.trim();
+        if (!name) return;
+        try {
+            await SubsonicAPI.createPlaylist(name);
+            this.closePlaylistModal();
+            showToast('歌单已创建');
+            this.renderPlaylists();
+        } catch (e) {
+            showToast('创建失败：' + e.message);
+        }
+    },
+
+    async deletePlaylist(id, name) {
+        if (!confirm(`确定删除歌单"${name}"？`)) return;
+        try {
+            await SubsonicAPI.deletePlaylist(id);
+            showToast('歌单已删除');
+            this.renderPlaylists();
+        } catch (e) {
+            showToast('删除失败：' + e.message);
+        }
+    },
+
+    toggleSidebar(force) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const open = force !== undefined ? force : !sidebar.classList.contains('open');
+        sidebar.classList.toggle('open', open);
+        overlay.classList.toggle('active', open);
+    },
+
+    highlightPlayingSong() {
+        const songId = Player.getCurrentSongId();
+        document.querySelectorAll('.song-item').forEach(el => {
+            el.classList.toggle('playing', el.dataset.songId === songId);
+        });
+    },
+
+    // ===== HTML 模板 =====
+    albumCardHTML(a) {
+        return `
+            <div class="album-card" onclick="App.openAlbum('${a.id}')">
+                <div class="album-cover">
+                    ${a.coverArt ? `<img src="${SubsonicAPI.getCoverArtUrl(a.coverArt, 300)}" alt="" onerror="this.style.display='none'">` : ''}
+                    <div class="play-overlay"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                </div>
+                <div class="album-name">${escapeHtml(a.name || '未知')}</div>
+                <div class="album-artist">${escapeHtml(a.artist || '')}</div>
+            </div>
+        `;
+    },
+
+    artistCardHTML(a) {
+        return `
+            <div class="artist-card">
+                <div class="artist-avatar">
+                    ${a.coverArt ? `<img src="${SubsonicAPI.getCoverArtUrl(a.coverArt, 300)}" alt="" onerror="this.style.display='none'">` : ''}
+                </div>
+                <div class="artist-name">${escapeHtml(a.name || '未知')}</div>
+            </div>
+        `;
+    },
+
+    songListHTML(songs) {
+        if (!songs || songs.length === 0) return this.emptyState('暂无歌曲');
+        const header = `<div class="song-list-header"><div>#</div><div>标题</div><div>专辑</div><div>时长</div><div></div></div>`;
+        const items = songs.map((s, i) => `
+            <div class="song-item" data-song-id="${s.id}" ondblclick="Player.playQueue(${JSON.stringify(songs.map(x=>({id:x.id,title:x.title,artist:x.artist,album:x.album,coverArt:x.coverArt,duration:x.duration}))).replace(/"/g,'&quot;')}, ${i});App.highlightPlayingSong()">
+                <div class="song-index">${i + 1}</div>
+                <div class="song-play-btn" onclick="Player.playQueue(${JSON.stringify(songs.map(x=>({id:x.id,title:x.title,artist:x.artist,album:x.album,coverArt:x.coverArt,duration:x.duration}))).replace(/"/g,'&quot;')}, ${i});App.highlightPlayingSong()">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </div>
+                <div class="song-info">
+                    <div class="song-title">${escapeHtml(s.title || '未知')}</div>
+                    <div class="song-artist">${escapeHtml(s.artist || '')}</div>
+                </div>
+                <div class="song-album">${escapeHtml(s.album || '')}</div>
+                <div class="song-duration">${formatTime(s.duration)}</div>
+                <div class="song-actions">
+                    <button class="song-action-btn" onclick="event.stopPropagation();Player.addToQueue(${JSON.stringify({id:s.id,title:s.title,artist:s.artist,album:s.album,coverArt:s.coverArt,duration:s.duration}).replace(/"/g,'&quot;')})" title="加入队列">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        return header + items;
+    },
+
+    emptyState(text) {
+        return `
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <h3>${escapeHtml(text)}</h3>
+            </div>
+        `;
+    }
+};
+
+// ===== APK / 移动端环境适配 =====
+const AppEnv = {
+    isAndroidApp: /SaltWave/i.test(navigator.userAgent) || !!window.AndroidBridge,
+
+    init() {
+        // Android 返回键：优先关闭歌词面板 / 弹窗，其次返回上一个视图
+        document.addEventListener('backbutton', () => this.handleBack(), false);
+
+        // 兼容自定义原生桥
+        if (window.AndroidBridge && window.AndroidBridge.setOnBackCallback) {
+            window.AndroidBridge.setOnBackCallback('AppEnv.handleBack');
+        }
+
+        // 网络状态提示
+        window.addEventListener('offline', () => showToast('网络已断开'));
+        window.addEventListener('online', () => showToast('网络已恢复'));
+
+        // 阻止 iOS/Android 双击缩放与下拉回弹
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
+    },
+
+    handleBack() {
+        // 1. 歌词面板
+        const lyricsOverlay = document.getElementById('lyrics-overlay');
+        if (lyricsOverlay && lyricsOverlay.classList.contains('active')) {
+            Player.closeLyricsPanel();
+            return true;
+        }
+        // 2. 歌单弹窗
+        const modal = document.getElementById('playlist-modal');
+        if (modal && modal.classList.contains('active')) {
+            App.closePlaylistModal();
+            return true;
+        }
+        // 3. 侧边栏
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && sidebar.classList.contains('open')) {
+            App.toggleSidebar(false);
+            return true;
+        }
+        // 4. 返回上一个视图
+        const stack = App.navStack || [];
+        if (stack.length > 1) {
+            stack.pop();
+            const prev = stack.pop() || 'home';
+            App.navigate(prev);
+            return true;
+        }
+        // 5. 已经在首页 → 交给原生退出
+        return false;
+    }
+};
+
+// ===== 工具函数 =====
+function formatTime(seconds) {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ===== 初始化 =====
+document.getElementById('login-form').addEventListener('submit', (e) => { e.preventDefault(); App.login(); });
+document.getElementById('playlist-name-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') App.createPlaylist();
+    if (e.key === 'Escape') App.closePlaylistModal();
+});
+
+Player.init();
+AppEnv.init();
+App.autoLogin();
+</script>
+</body>
+</html>

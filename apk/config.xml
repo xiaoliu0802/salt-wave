@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.saltwave.player" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Salt Wave</name>
+    <description>Salt Wave - Navidrome 音乐播放器</description>
+    <author email="dev@saltwave.app" href="https://github.com/Moriafly/SaltPlayerSource">
+        Salt Wave
+    </author>
+
+    <content src="index.html" />
+
+    <!-- 允许访问任意服务器（Navidrome 公网/局域网地址） -->
+    <access origin="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <allow-intent href="tel:*" />
+    <allow-intent href="sms:*" />
+    <allow-intent href="mailto:*" />
+    <allow-intent href="geo:*" />
+
+    <!-- 允许 HTTP 明文请求（局域网 Navidrome 常用 http） -->
+    <preference name="AndroidInsecureFileModeEnabled" value="true" />
+    <preference name="scheme" value="https" />
+    <preference name="hostname" value="localhost" />
+
+    <preference name="Fullscreen" value="false" />
+    <preference name="StatusBarOverlaysWebView" value="true" />
+    <preference name="StatusBarBackgroundColor" value="#0f0f1e" />
+    <preference name="StatusBarStyle" value="lightcontent" />
+    <preference name="Orientation" value="portrait" />
+    <preference name="SplashMaintainAspectRatio" value="true" />
+    <preference name="SplashShowOnlyFirstTime" value="false" />
+    <preference name="SplashScreenDelay" value="800" />
+    <preference name="AndroidPersistentFileLocation" value="Internal" />
+    <preference name="MediaPlaybackRequiresUserAction" value="false" />
+    <preference name="AllowInlineMediaPlayback" value="true" />
+
+    <platform name="android">
+        <preference name="android-minSdkVersion" value="24" />
+        <preference name="AndroidXEnabled" value="true" />
+
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+            <uses-permission android:name="android.permission.WAKE_LOCK" />
+        </config-file>
+    </platform>
+
+    <plugin name="cordova-plugin-statusbar" spec="^4.0.0" />
+    <plugin name="cordova-plugin-network-information" spec="^3.0.0" />
+</widget>
