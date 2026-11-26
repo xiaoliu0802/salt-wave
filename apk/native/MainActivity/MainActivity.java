@@ -78,9 +78,10 @@ public class MainActivity extends CordovaActivity
     {
         if (appWebView != null) {
             appWebView.evaluateJavascript(
-                "(function(){ try { if (window.AppEnv && window.AppEnv.handleBack) { var handled = AppEnv.handleBack(); return handled === false ? 'exit' : 'handled'; } return 'exit'; } catch(e) { return 'exit'; } })()",
+                "(function(){ try { if (typeof window.SaltWaveBack === 'function') { return window.SaltWaveBack(); } return 'exit'; } catch(e) { return 'exit'; } })()",
                 value -> {
-                    if (value != null && value.contains("exit")) {
+                    // 只有网页明确表示“退无可退”才真正退出，避免一按返回就杀进程
+                    if (value == null || !value.contains("handled")) {
                         finish();
                     }
                 }

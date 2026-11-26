@@ -903,7 +903,7 @@
         .lyrics-line {
             font-size: var(--ly-size, 17px);
             font-weight: var(--ly-weight, 400);
-            line-height: 2.1;
+            line-height: var(--ly-lh, 2.1);
             color: rgba(255,255,255,.55);
             text-align: var(--ly-align, center);
             padding: 1px 0;
@@ -916,7 +916,7 @@
         .lyrics-line.ln2 { color: rgba(255,255,255,.24); filter: blur(1.5px); }
         .lyrics-line.ln3 { color: rgba(255,255,255,.14); filter: blur(2.6px); }
         .lyrics-line.active {
-            color: #fff;
+            color: var(--ly-active-color, #fff);
             font-size: var(--ly-active-size, 22px);
             font-weight: var(--ly-active-weight, 700);
             filter: none;
@@ -973,6 +973,29 @@
             box-shadow: 0 -8px 40px rgba(0,0,0,.45);
         }
         .lyrics-settings-overlay.open .lyrics-settings { transform: translateY(0); }
+        /* 歌词来源 → 二级参数面板 */
+        .lyrics-settings-overlay.lyrics-adv { z-index: 4; }
+        .ls-back {
+            display: flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 50%;
+            background: transparent; color: #fff; margin-right: 6px;
+        }
+        .ls-header-left { display: flex; align-items: center; }
+        .ls-source-row { cursor: pointer; }
+        .ls-source-row:active { background: rgba(255,255,255,.05); }
+        .ls-chevron { display: flex; align-items: center; color: var(--text-dim); }
+        .ls-chevron svg { width: 18px; height: 18px; }
+        .ls-swatches { display: flex; gap: 10px; align-items: center; }
+        .ls-swatch {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: var(--sw);
+            border: 2px solid rgba(255,255,255,.18);
+        }
+        .ls-swatch.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+        .ls-reset {
+            width: 100%; padding: 12px 0; border-radius: 12px;
+            background: rgba(255,255,255,.08); color: #ddd; font-size: 14px;
+        }
         .ls-handle {
             width: 36px;
             height: 4px;
@@ -1435,8 +1458,64 @@
                 </div>
             </div>
             <div class="ls-group ls-source-group">
-                <div class="ls-row-label">歌词来源</div>
-                <div class="ls-source-value" id="ls-source-value">EMBEDDED</div>
+                <div class="ls-row ls-source-row" onclick="LyricsStyle.openAdvanced()">
+                    <div>
+                        <div class="ls-row-label">歌词来源</div>
+                        <div class="ls-source-value" id="ls-source-value">EMBEDDED</div>
+                    </div>
+                    <span class="ls-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 歌词来源二级面板：点 EMBEDDED 进入，调更细的歌词参数 -->
+    <div class="lyrics-settings-overlay lyrics-adv" id="lyrics-adv-overlay" onclick="if (event.target === this) LyricsStyle.closeAdvanced()">
+        <div class="lyrics-settings">
+            <div class="ls-handle"></div>
+            <div class="ls-header">
+                <div class="ls-header-left">
+                    <button class="ls-back" onclick="LyricsStyle.closeAdvanced()" title="返回">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 6 9 12 15 18"/></svg>
+                    </button>
+                    <h3>歌词参数</h3>
+                </div>
+                <button class="ls-close" onclick="LyricsStyle.closeAdvanced()" title="关闭">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="ls-group">
+                <div class="ls-row ls-row-col">
+                    <div class="ls-row-head">
+                        <span class="ls-row-label">歌词行间距</span>
+                        <span class="ls-value" id="ls-lh-val">2.1</span>
+                    </div>
+                    <input class="ls-range" type="range" id="ls-lh" min="1.4" max="3" step="0.1" value="2.1" oninput="LyricsStyle.setLineHeight(this.value)">
+                </div>
+                <div class="ls-row ls-row-col">
+                    <div class="ls-row-head">
+                        <span class="ls-row-label">当前句放大倍率</span>
+                        <span class="ls-value" id="ls-scale-val">1.29</span>
+                    </div>
+                    <input class="ls-range" type="range" id="ls-scale" min="1" max="1.8" step="0.05" value="1.29" oninput="LyricsStyle.setActiveScale(this.value)">
+                </div>
+                <div class="ls-row">
+                    <span class="ls-row-label">当前句高亮色</span>
+                    <div class="ls-swatches">
+                        <button class="ls-swatch active" style="--sw:#ffffff" onclick="LyricsStyle.setActiveColor('#ffffff', this)"></button>
+                        <button class="ls-swatch" style="--sw:#8ec5ff" onclick="LyricsStyle.setActiveColor('#8ec5ff', this)"></button>
+                        <button class="ls-swatch" style="--sw:#ffd479" onclick="LyricsStyle.setActiveColor('#ffd479', this)"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="ls-group">
+                <div class="ls-row">
+                    <span class="ls-row-label">歌词来源<span class="ls-row-note">当前：EMBEDDED（内嵌于音频文件）</span></span>
+                    <span class="ls-source-value" id="ls-adv-source">EMBEDDED</span>
+                </div>
+                <button class="ls-reset" onclick="LyricsStyle.resetAdvanced()">恢复默认参数</button>
             </div>
         </div>
     </div>
@@ -1541,8 +1620,8 @@ const SubsonicAPI = {
         return this._call('ping');
     },
 
-    async getAlbumList(type = 'newest', size = 24) {
-        const resp = await this._call('getAlbumList2', { type, size });
+    async getAlbumList(type = 'newest', size = 24, offset = 0) {
+        const resp = await this._call('getAlbumList2', { type, size, offset });
         return resp.albumList2?.album || [];
     },
 
@@ -1571,6 +1650,52 @@ const SubsonicAPI = {
     async getRandomSongs(size = 50) {
         const resp = await this._call('getRandomSongs', { size });
         return resp.randomSongs?.song || [];
+    },
+
+    // 全库歌曲：Subsonic 没有“列出全部歌曲”的接口，
+    // 先用 getAlbumList2 分页取全部专辑，再逐张 getAlbum 取曲目（限并发，逐张回报进度）
+    async getAllSongs(onProgress) {
+        const albums = [];
+        const PAGE = 500;
+        for (let page = 0; page < 20; page++) {
+            const batch = await this.getAlbumList('alphabeticalByArtist', PAGE, page * PAGE);
+            albums.push(...batch);
+            if (batch.length < PAGE) break;
+        }
+        if (albums.length === 0) return [];
+
+        const songs = [];
+        const CONCURRENCY = 6;
+        let cursor = 0;
+        let done = 0;
+
+        const worker = async () => {
+            while (cursor < albums.length) {
+                const album = albums[cursor++];
+                try {
+                    const detail = await this.getAlbum(album.id);
+                    (detail?.song || []).forEach((song) => {
+                        songs.push({
+                            id: song.id,
+                            title: song.title,
+                            artist: song.artist || album.artist || '',
+                            album: song.album || album.name || '',
+                            coverArt: song.coverArt || album.coverArt,
+                            duration: song.duration,
+                            albumId: album.id
+                        });
+                    });
+                } catch (e) {
+                    // 单张专辑取不到不影响整库
+                }
+                done++;
+                if (onProgress && done % 5 === 0) onProgress(done, albums.length);
+            }
+        };
+
+        await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+        if (onProgress) onProgress(albums.length, albums.length);
+        return songs;
     },
 
     async search(query) {
@@ -2052,7 +2177,7 @@ const Player = {
 // ========================================
 const LyricsStyle = {
     key: 'saltwave_lyrics_style',
-    state: { size: 17, alignCenter: true, weight: 400, blur: true, stagger: false },
+    state: { size: 17, alignCenter: true, weight: 400, blur: true, stagger: false, lineHeight: 2.1, activeScale: 1.29, activeColor: '#ffffff' },
 
     load() {
         try {
@@ -2072,7 +2197,9 @@ const LyricsStyle = {
             panel.style.setProperty('--ly-size', this.state.size + 'px');
             panel.style.setProperty('--ly-align', this.state.alignCenter ? 'center' : 'left');
             panel.style.setProperty('--ly-weight', String(this.state.weight));
-            panel.style.setProperty('--ly-active-size', Math.round(this.state.size * 1.29) + 'px');
+            panel.style.setProperty('--ly-lh', String(this.state.lineHeight || 2.1));
+            panel.style.setProperty('--ly-active-size', Math.round(this.state.size * (this.state.activeScale || 1.29)) + 'px');
+            panel.style.setProperty('--ly-active-color', this.state.activeColor || '#ffffff');
             panel.style.setProperty('--ly-active-weight', String(Math.min(900, this.state.weight + 300)));
             panel.setAttribute('data-ly-blur', this.state.blur ? 'on' : 'off');
             panel.setAttribute('data-ly-stagger', this.state.stagger ? 'on' : 'off');
@@ -2095,13 +2222,56 @@ const LyricsStyle = {
         if (alignEl) alignEl.classList.toggle('on', this.state.alignCenter);
         if (blurEl) blurEl.classList.toggle('on', this.state.blur);
         if (staggerEl) staggerEl.classList.toggle('on', this.state.stagger);
+
+        const lhEl = document.getElementById('ls-lh');
+        const lhVal = document.getElementById('ls-lh-val');
+        const scaleEl = document.getElementById('ls-scale');
+        const scaleVal = document.getElementById('ls-scale-val');
+        if (lhEl) lhEl.value = this.state.lineHeight || 2.1;
+        if (lhVal) lhVal.textContent = (this.state.lineHeight || 2.1).toFixed(1);
+        if (scaleEl) scaleEl.value = this.state.activeScale || 1.29;
+        if (scaleVal) scaleVal.textContent = (this.state.activeScale || 1.29).toFixed(2);
+        document.querySelectorAll('.ls-swatch').forEach((el) => {
+            el.classList.toggle('active', el.style.getPropertyValue('--sw').trim().toLowerCase() === (this.state.activeColor || '#ffffff').toLowerCase());
+        });
+        const advSrc = document.getElementById('ls-adv-source');
+        const mainSrc = document.getElementById('ls-source-value');
+        if (advSrc && mainSrc) advSrc.textContent = mainSrc.textContent;
     },
 
     setSize(v) { this.state.size = Number(v) || 17; this.save(); this.apply(); },
     setWeight(v) { this.state.weight = Number(v) || 400; this.save(); this.apply(); },
+    setLineHeight(v) { this.state.lineHeight = Number(v) || 2.1; this.save(); this.apply(); },
+    setActiveScale(v) { this.state.activeScale = Number(v) || 1.29; this.save(); this.apply(); },
+    setActiveColor(color, el) { this.state.activeColor = color; this.save(); this.apply(); },
     toggleAlign() { this.state.alignCenter = !this.state.alignCenter; this.save(); this.apply(); },
     toggleBlur() { this.state.blur = !this.state.blur; this.save(); this.apply(); },
     toggleStagger() { this.state.stagger = !this.state.stagger; this.save(); this.apply(); },
+
+    resetAdvanced() {
+        this.state.lineHeight = 2.1;
+        this.state.activeScale = 1.29;
+        this.state.activeColor = '#ffffff';
+        this.save();
+        this.apply();
+        showToast('已恢复默认参数');
+    },
+
+    openAdvanced() {
+        const overlay = document.getElementById('lyrics-adv-overlay');
+        this.syncUI();
+        if (overlay) overlay.classList.add('open');
+    },
+
+    closeAdvanced() {
+        const overlay = document.getElementById('lyrics-adv-overlay');
+        if (overlay) overlay.classList.remove('open');
+    },
+
+    isAdvancedOpen() {
+        const el = document.getElementById('lyrics-adv-overlay');
+        return !!(el && el.classList.contains('open'));
+    },
 
     openSettings() {
         const overlay = document.getElementById('lyrics-settings-overlay');
@@ -2115,6 +2285,7 @@ const LyricsStyle = {
     closeSettings() {
         const overlay = document.getElementById('lyrics-settings-overlay');
         if (overlay) overlay.classList.remove('open');
+        this.closeAdvanced();
     }
 };
 
@@ -2191,6 +2362,8 @@ const QueuePanel = {
 const App = {
     currentView: 'home',
     cache: { albums: [], artists: [], songs: [], playlists: [] },
+    songLists: {},
+    _listSeq: 0,
     searchTimer: null,
 
     async login() {
@@ -2269,6 +2442,7 @@ const App = {
 
     navigate(view) {
         this.currentView = view;
+        this.songLists = {};
         this.navStack = this.navStack || [];
         if (this.navStack[this.navStack.length - 1] !== view) {
             this.navStack.push(view);
@@ -2355,14 +2529,40 @@ const App = {
 
     async renderSongs() {
         const content = document.getElementById('page-content');
-        content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
+        const cacheKey = `saltwave_all_songs_${SubsonicAPI.serverUrl}_${SubsonicAPI.username}`;
+        let cached = null;
+        try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (e) { cached = null; }
+        const cacheFresh = cached && Array.isArray(cached.songs) && (Date.now() - (cached.ts || 0) < 10 * 60 * 1000);
+
+        const paint = (songs, note) => {
+            content.innerHTML = `<h1 class="page-title">歌曲<span style="font-size:13px;font-weight:400;color:var(--text-dim);margin-left:8px;">共 ${songs.length} 首</span></h1>`
+                + (note ? `<div id="songs-progress" style="font-size:13px;color:var(--text-dim);margin:-4px 0 12px;">${note}</div>` : '')
+                + this.songListHTML(songs, 'songs');
+        };
+
+        if (cached && Array.isArray(cached.songs) && cached.songs.length) {
+            this.cache.songs = cached.songs;
+            paint(cached.songs, cacheFresh ? '' : '正在刷新曲库…');
+            if (cacheFresh) return;
+        } else {
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><div id="songs-progress" style="margin-top:12px;color:var(--text-dim);font-size:13px;">正在扫描曲库…</div></div>';
+        }
+
         try {
-            const songs = await SubsonicAPI.getRandomSongs(100);
+            const songs = await SubsonicAPI.getAllSongs((done, total) => {
+                const el = document.getElementById('songs-progress');
+                if (el) el.textContent = `正在扫描专辑 ${done}/${total}…`;
+            });
+            songs.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh-Hans-CN'));
             this.cache.songs = songs;
-            content.innerHTML = `<h1 class="page-title">歌曲</h1>${this.songListHTML(songs)}`;
-            if (songs.length === 0) content.innerHTML = `<h1 class="page-title">歌曲</h1>${this.emptyState('暂无歌曲')}`;
+            try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), songs })); } catch (e) {}
+            paint(songs, '');
         } catch (e) {
-            content.innerHTML = this.emptyState('加载失败：' + e.message);
+            if (!cached) content.innerHTML = this.emptyState('加载失败：' + e.message);
+            else {
+                const el = document.getElementById('songs-progress');
+                if (el) el.textContent = '刷新失败：' + e.message;
+            }
         }
     },
 
@@ -2581,13 +2781,16 @@ const App = {
         `;
     },
 
-    songListHTML(songs) {
+    songListHTML(songs, listId) {
         if (!songs || songs.length === 0) return this.emptyState('暂无歌曲');
+        this.songLists = this.songLists || {};
+        const key = listId || ('list_' + (++this._listSeq));
+        this.songLists[key] = songs;
         const header = `<div class="song-list-header"><div>#</div><div>标题</div><div>专辑</div><div>时长</div><div></div></div>`;
         const items = songs.map((s, i) => `
-            <div class="song-item" data-song-id="${s.id}" ondblclick="Player.playQueue(${JSON.stringify(songs.map(x=>({id:x.id,title:x.title,artist:x.artist,album:x.album,coverArt:x.coverArt,duration:x.duration}))).replace(/"/g,'&quot;')}, ${i});App.highlightPlayingSong()">
+            <div class="song-item" data-song-id="${s.id}" onclick="App.playList('${key}', ${i})">
                 <div class="song-index">${i + 1}</div>
-                <div class="song-play-btn" onclick="Player.playQueue(${JSON.stringify(songs.map(x=>({id:x.id,title:x.title,artist:x.artist,album:x.album,coverArt:x.coverArt,duration:x.duration}))).replace(/"/g,'&quot;')}, ${i});App.highlightPlayingSong()">
+                <div class="song-play-btn" onclick="event.stopPropagation();App.playList('${key}', ${i})">
                     <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 </div>
                 <div class="song-info">
@@ -2597,13 +2800,34 @@ const App = {
                 <div class="song-album">${escapeHtml(s.album || '')}</div>
                 <div class="song-duration">${formatTime(s.duration)}</div>
                 <div class="song-actions">
-                    <button class="song-action-btn" onclick="event.stopPropagation();Player.addToQueue(${JSON.stringify({id:s.id,title:s.title,artist:s.artist,album:s.album,coverArt:s.coverArt,duration:s.duration}).replace(/"/g,'&quot;')})" title="加入队列">
+                    <button class="song-action-btn" onclick="event.stopPropagation();App.addToQueueFrom('${key}', ${i})" title="加入队列">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
                 </div>
             </div>
         `).join('');
         return header + items;
+    },
+
+    playList(key, index) {
+        const songs = (this.songLists || {})[key];
+        if (!songs || !songs[index]) return;
+        Player.playQueue(songs, index);
+        this.highlightPlayingSong();
+    },
+
+    addToQueueFrom(key, index) {
+        const songs = (this.songLists || {})[key];
+        if (!songs || !songs[index]) return;
+        const song = songs[index];
+        Player.addToQueue({
+            id: song.id,
+            title: song.title,
+            artist: song.artist,
+            album: song.album,
+            coverArt: song.coverArt,
+            duration: song.duration
+        });
     },
 
     emptyState(text) {
@@ -2679,6 +2903,11 @@ const AppEnv = {
             QueuePanel.close();
             return true;
         }
+        // 1. 歌词参数二级面板（最上层）
+        if (LyricsStyle.isAdvancedOpen()) {
+            LyricsStyle.closeAdvanced();
+            return true;
+        }
         // 1. 歌词设置面板
         const settingsOverlay = document.getElementById('lyrics-settings-overlay');
         if (settingsOverlay && settingsOverlay.classList.contains('open')) {
@@ -2711,8 +2940,27 @@ const AppEnv = {
             App.navigate(prev);
             return true;
         }
-        // 5. 已经在首页 → 交给原生退出
-        return false;
+        // 5. 已经在首页：第一次按只提示，2 秒内连按两次才交给原生退出
+        const now = Date.now();
+        if (this._lastRootBackAt && now - this._lastRootBackAt < 2000) {
+            this._lastRootBackAt = 0;
+            return false;
+        }
+        this._lastRootBackAt = now;
+        showToast('再按一次返回键退出');
+        return true;
+    }
+};
+
+// 顶层 const 不会成为 window 的属性，必须显式导出，否则原生 evaluateJavascript 取不到
+window.App = App;
+window.Player = Player;
+window.AppEnv = AppEnv;
+window.SaltWaveBack = function () {
+    try {
+        return AppEnv.handleBack() ? 'handled' : 'exit';
+    } catch (e) {
+        return 'handled';   // 出错也不要退出 App
     }
 };
 
