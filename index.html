@@ -781,20 +781,31 @@
             padding: 8px 20px calc(8px + env(safe-area-inset-bottom, 0px));
         }
         .lc-label {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 6px;
             margin-bottom: 6px;
+            padding: 2px 0;
             font-size: 11px;
             letter-spacing: .5px;
             color: rgba(255,255,255,.5);
+            background: none;
+            border: 0;
+            cursor: pointer;
+            transition: color .15s;
         }
+        .lc-label:active { color: #fff; }
         .lc-chip {
             border: 1px solid rgba(255,255,255,.28);
             border-radius: 4px;
-            padding: 1px 5px;
+            padding: 1px 6px;
             font-size: 10px;
             color: rgba(255,255,255,.75);
+        }
+        .lc-label-arrow {
+            width: 12px;
+            height: 12px;
+            color: rgba(255,255,255,.35);
         }
         .lc-track {
             position: relative;
@@ -880,7 +891,7 @@
             max-width: 720px;
             margin: 0 auto;
             overflow-y: auto;
-            padding: 10px 24px 24px;
+            padding: 18px 24px 24px;
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
@@ -888,27 +899,35 @@
             mask-image: linear-gradient(180deg, transparent 0, #000 7%, #000 82%, transparent 100%);
         }
         .lyrics-line {
-            font-size: 17px;
+            font-size: var(--ly-size, 17px);
+            font-weight: var(--ly-weight, 400);
             line-height: 2.1;
             color: rgba(255,255,255,.55);
-            text-align: center;
+            text-align: var(--ly-align, center);
             padding: 1px 0;
             cursor: pointer;
             transition: color .3s, font-size .3s, filter .3s, transform .3s;
             -webkit-user-select: none;
             user-select: none;
         }
-        .lyrics-line.ln1 { color: rgba(255,255,255,.32); filter: blur(.4px); }
-        .lyrics-line.ln2 { color: rgba(255,255,255,.18); filter: blur(1.5px); }
-        .lyrics-line.ln3 { color: rgba(255,255,255,.1); filter: blur(2.6px); }
+        .lyrics-line.ln1 { color: rgba(255,255,255,.38); filter: blur(.4px); }
+        .lyrics-line.ln2 { color: rgba(255,255,255,.24); filter: blur(1.5px); }
+        .lyrics-line.ln3 { color: rgba(255,255,255,.14); filter: blur(2.6px); }
         .lyrics-line.active {
             color: #fff;
-            font-size: 22px;
-            font-weight: 700;
+            font-size: var(--ly-active-size, 22px);
+            font-weight: var(--ly-active-weight, 700);
             filter: none;
             transform: scale(1.02);
             text-shadow: 0 2px 16px rgba(0,0,0,.5);
         }
+        /* 设置：关闭模糊 */
+        .lyrics-panel[data-ly-blur="off"] .lyrics-line.ln1,
+        .lyrics-panel[data-ly-blur="off"] .lyrics-line.ln2,
+        .lyrics-panel[data-ly-blur="off"] .lyrics-line.ln3 { filter: none; }
+        /* 设置：交错效果（奇数句/偶数句左右错开） */
+        .lyrics-panel[data-ly-stagger="on"] .lyrics-line:not(.active):nth-child(odd) { transform: translateX(-10px); }
+        .lyrics-panel[data-ly-stagger="on"] .lyrics-line:not(.active):nth-child(even) { transform: translateX(10px); }
         .lyrics-plain {
             font-size: 15px;
             line-height: 2;
@@ -923,10 +942,124 @@
             font-size: 14px;
         }
 
+        /* ===== 歌词设置（点“词”徽标打开） ===== */
+        .lyrics-settings-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            background: rgba(0,0,0,.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .22s ease;
+        }
+        .lyrics-settings-overlay.open { opacity: 1; pointer-events: auto; }
+        .lyrics-settings {
+            width: 100%;
+            max-width: 560px;
+            max-height: 86vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            background: #16141c;
+            border-radius: 20px 20px 0 0;
+            padding: 6px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            transform: translateY(100%);
+            transition: transform .28s cubic-bezier(.22,.61,.36,1);
+            box-shadow: 0 -8px 40px rgba(0,0,0,.45);
+        }
+        .lyrics-settings-overlay.open .lyrics-settings { transform: translateY(0); }
+        .ls-handle {
+            width: 36px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,.22);
+            margin: 4px auto 12px;
+        }
+        .ls-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0 14px 4px;
+        }
+        .ls-header h3 { margin: 0; font-size: 20px; font-weight: 600; color: #fff; }
+        .ls-close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.12);
+            color: #fff;
+        }
+        .ls-close:active { background: rgba(255,255,255,.2); }
+        .ls-group {
+            background: #221f2b;
+            border-radius: 14px;
+            padding: 2px 16px;
+            margin-bottom: 12px;
+        }
+        .ls-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+        .ls-row:last-child { border-bottom: 0; }
+        .ls-row.ls-row-col { display: block; }
+        .ls-row-label { font-size: 15px; color: #ece9f4; }
+        .ls-row-note { display: block; margin-top: 4px; font-size: 11px; color: rgba(255,255,255,.4); }
+        .ls-value { font-size: 13px; color: rgba(255,255,255,.55); font-variant-numeric: tabular-nums; }
+        .ls-row-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .ls-range {
+            width: 100%;
+            margin: 0;
+            height: 20px;
+            accent-color: #8ec5ff;
+        }
+        .ls-toggle {
+            position: relative;
+            width: 46px;
+            height: 26px;
+            flex-shrink: 0;
+            border-radius: 13px;
+            background: rgba(255,255,255,.16);
+            transition: background .2s;
+        }
+        .ls-toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform .2s;
+        }
+        .ls-toggle.on { background: #8ec5ff; }
+        .ls-toggle.on::after { transform: translateX(20px); }
+        .ls-source-group { padding: 14px 16px 16px; }
+        .ls-source-group .ls-row-label { font-size: 12px; color: rgba(255,255,255,.45); }
+        .ls-source-value {
+            margin-top: 4px;
+            font-size: 16px;
+            color: #fff;
+            letter-spacing: .6px;
+        }
+
         @media (max-width: 768px) {
-            .lyrics-panel-content { padding: 6px 18px 20px; }
-            .lyrics-line { font-size: 16px; }
-            .lyrics-line.active { font-size: 21px; }
+            .lyrics-panel-content { padding: 14px 18px 20px; }
             .lyrics-panel-header { padding: 12px 8px 2px 18px; }
             .lyrics-title { font-size: 19px; }
             .lyrics-footer { padding: 6px 16px calc(6px + env(safe-area-inset-bottom, 0px)); }
@@ -1143,7 +1276,10 @@
             <div class="lyrics-empty">点击歌曲开始播放后显示歌词</div>
         </div>
         <div class="lyrics-footer">
-            <div class="lc-label"><span class="lc-chip">词</span><span id="lc-source">EMBEDDED</span></div>
+            <button class="lc-label" id="lc-settings-btn" onclick="LyricsStyle.openSettings()" title="歌词设置">
+                <span class="lc-chip">词</span><span id="lc-source">EMBEDDED</span>
+                <svg class="lc-label-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
             <div class="lc-track" id="lc-track" onclick="Player.seekLyrics(event)">
                 <div class="lc-fill" id="lc-fill"></div>
             </div>
@@ -1169,6 +1305,51 @@
                 <button class="lc-sec-btn" id="lc-repeat" onclick="Player.toggleRepeat()" title="循环模式">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 歌词设置面板 -->
+    <div class="lyrics-settings-overlay" id="lyrics-settings-overlay" onclick="if (event.target === this) LyricsStyle.closeSettings()">
+        <div class="lyrics-settings">
+            <div class="ls-handle"></div>
+            <div class="ls-header">
+                <h3>歌词设置</h3>
+                <button class="ls-close" onclick="LyricsStyle.closeSettings()" title="关闭">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="ls-group">
+                <div class="ls-row ls-row-col">
+                    <div class="ls-row-head">
+                        <span class="ls-row-label">歌词视图字体大小</span>
+                        <span class="ls-value" id="ls-size-val">17</span>
+                    </div>
+                    <input class="ls-range" type="range" id="ls-size" min="12" max="34" step="1" value="17" oninput="LyricsStyle.setSize(this.value)">
+                </div>
+                <div class="ls-row">
+                    <span class="ls-row-label">歌词视图文本居中对齐</span>
+                    <button class="ls-toggle on" id="ls-align" onclick="LyricsStyle.toggleAlign()"></button>
+                </div>
+                <div class="ls-row ls-row-col">
+                    <div class="ls-row-head">
+                        <span class="ls-row-label">字体粗细</span>
+                        <span class="ls-value" id="ls-weight-val">400</span>
+                    </div>
+                    <input class="ls-range" type="range" id="ls-weight" min="300" max="800" step="100" value="400" oninput="LyricsStyle.setWeight(this.value)">
+                </div>
+                <div class="ls-row">
+                    <span class="ls-row-label">歌词视图模糊<span class="ls-row-note">远处歌词虚化，突出当前句</span></span>
+                    <button class="ls-toggle on" id="ls-blur" onclick="LyricsStyle.toggleBlur()"></button>
+                </div>
+                <div class="ls-row">
+                    <span class="ls-row-label">交错滚动效果<span class="ls-row-note">上下句左右错开显示</span></span>
+                    <button class="ls-toggle" id="ls-stagger" onclick="LyricsStyle.toggleStagger()"></button>
+                </div>
+            </div>
+            <div class="ls-group ls-source-group">
+                <div class="ls-row-label">歌词来源</div>
+                <div class="ls-source-value" id="ls-source-value">EMBEDDED</div>
             </div>
         </div>
     </div>
@@ -1408,6 +1589,7 @@ const Player = {
         this.audio.addEventListener('pause', () => { this.isPlaying = false; this.updatePlayBtn(); });
         this.audio.addEventListener('error', () => { console.error('Audio error'); this.next(); });
         this.initCoverDoubleTap();
+        LyricsStyle.load();
 
         // 点歌词行跳到该句（仅带时间轴的歌词有效）
         const lyricsPanel = document.getElementById('lyrics-panel-content');
@@ -1619,6 +1801,7 @@ const Player = {
         this.lyricsPanelOpen = false;
         const overlay = document.getElementById('lyrics-overlay');
         if (overlay) overlay.classList.remove('active');
+        LyricsStyle.closeSettings();
     },
 
     togglePlay() {
@@ -1768,6 +1951,77 @@ const Player = {
             return this.queue[this.currentIndex].id;
         }
         return null;
+    }
+};
+
+// ========================================
+//  歌词样式设置（点歌词页左下角“词”徽标打开）
+// ========================================
+const LyricsStyle = {
+    key: 'saltwave_lyrics_style',
+    state: { size: 17, alignCenter: true, weight: 400, blur: true, stagger: false },
+
+    load() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.key) || 'null');
+            if (saved) Object.assign(this.state, saved);
+        } catch (e) { /* 忽略损坏的本地配置 */ }
+        this.apply();
+    },
+
+    save() {
+        try { localStorage.setItem(this.key, JSON.stringify(this.state)); } catch (e) {}
+    },
+
+    apply() {
+        const panel = document.querySelector('.lyrics-panel');
+        if (panel) {
+            panel.style.setProperty('--ly-size', this.state.size + 'px');
+            panel.style.setProperty('--ly-align', this.state.alignCenter ? 'center' : 'left');
+            panel.style.setProperty('--ly-weight', String(this.state.weight));
+            panel.style.setProperty('--ly-active-size', Math.round(this.state.size * 1.29) + 'px');
+            panel.style.setProperty('--ly-active-weight', String(Math.min(900, this.state.weight + 300)));
+            panel.setAttribute('data-ly-blur', this.state.blur ? 'on' : 'off');
+            panel.setAttribute('data-ly-stagger', this.state.stagger ? 'on' : 'off');
+        }
+        this.syncUI();
+    },
+
+    syncUI() {
+        const sizeEl = document.getElementById('ls-size');
+        const sizeVal = document.getElementById('ls-size-val');
+        const weightEl = document.getElementById('ls-weight');
+        const weightVal = document.getElementById('ls-weight-val');
+        const alignEl = document.getElementById('ls-align');
+        const blurEl = document.getElementById('ls-blur');
+        const staggerEl = document.getElementById('ls-stagger');
+        if (sizeEl) sizeEl.value = this.state.size;
+        if (sizeVal) sizeVal.textContent = this.state.size;
+        if (weightEl) weightEl.value = this.state.weight;
+        if (weightVal) weightVal.textContent = this.state.weight;
+        if (alignEl) alignEl.classList.toggle('on', this.state.alignCenter);
+        if (blurEl) blurEl.classList.toggle('on', this.state.blur);
+        if (staggerEl) staggerEl.classList.toggle('on', this.state.stagger);
+    },
+
+    setSize(v) { this.state.size = Number(v) || 17; this.save(); this.apply(); },
+    setWeight(v) { this.state.weight = Number(v) || 400; this.save(); this.apply(); },
+    toggleAlign() { this.state.alignCenter = !this.state.alignCenter; this.save(); this.apply(); },
+    toggleBlur() { this.state.blur = !this.state.blur; this.save(); this.apply(); },
+    toggleStagger() { this.state.stagger = !this.state.stagger; this.save(); this.apply(); },
+
+    openSettings() {
+        const overlay = document.getElementById('lyrics-settings-overlay');
+        const src = document.getElementById('lc-source');
+        const srcValue = document.getElementById('ls-source-value');
+        if (src && srcValue) srcValue.textContent = src.textContent;
+        this.syncUI();
+        if (overlay) overlay.classList.add('open');
+    },
+
+    closeSettings() {
+        const overlay = document.getElementById('lyrics-settings-overlay');
+        if (overlay) overlay.classList.remove('open');
     }
 };
 
@@ -2224,6 +2478,12 @@ const AppEnv = {
     },
 
     handleBack() {
+        // 0. 歌词设置面板（先收这一层）
+        const settingsOverlay = document.getElementById('lyrics-settings-overlay');
+        if (settingsOverlay && settingsOverlay.classList.contains('open')) {
+            LyricsStyle.closeSettings();
+            return true;
+        }
         // 1. 歌词面板
         const lyricsOverlay = document.getElementById('lyrics-overlay');
         if (lyricsOverlay && lyricsOverlay.classList.contains('active')) {
