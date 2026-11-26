@@ -11,26 +11,26 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
       - name: Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install Android SDK packages
         run: |
-          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
-          yes | sdkmanager --licenses || true
+          yes | sdkmanager --licenses
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
       - name: Install Cordova CLI
         run: npm install -g cordova@13
@@ -78,8 +78,8 @@ jobs:
 
       - name: Generate app icons
         run: |
-          pip install pillow --quiet
-          python make-icons.py
+          python3 -m pip install --quiet pillow
+          python3 make-icons.py
 
       - name: Build Debug APK
         run: |
@@ -91,7 +91,7 @@ jobs:
           find apk/platforms/android/app/build/outputs -name "*.apk" -type f
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: SaltWave-APK
           path: apk/platforms/android/app/build/outputs/apk/**/*.apk
