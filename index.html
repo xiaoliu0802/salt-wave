@@ -691,23 +691,28 @@
         .lyrics-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 400;
-        }
-        .lyrics-overlay.active { display: flex; }
-        .lyrics-panel {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            width: 560px;
-            max-width: 90vw;
-            height: 70vh;
-            max-height: 600px;
+            background: var(--bg);
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            z-index: 400;
+            transform: translateY(100%);
+            opacity: 0;
+            pointer-events: none;
+            will-change: transform;
+            transition: transform .3s cubic-bezier(.22,.61,.36,1), opacity .22s ease;
+        }
+        .lyrics-overlay.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
+        .lyrics-panel {
+            background: var(--bg);
+            width: 100%;
+            max-width: none;
+            height: 100%;
+            max-height: none;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         .lyrics-panel-header {
             display: flex;
@@ -717,6 +722,15 @@
             border-bottom: 1px solid var(--border);
         }
         .lyrics-panel-title { font-size: 16px; font-weight: 600; }
+        .lyrics-header-text { min-width: 0; }
+        .lyrics-song {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .lyrics-close-btn {
             padding: 6px;
             color: var(--text-dim);
@@ -724,9 +738,14 @@
         .lyrics-close-btn:hover { color: var(--text); }
         .lyrics-panel-content {
             flex: 1;
+            width: 100%;
+            max-width: 720px;
+            margin: 0 auto;
             overflow-y: auto;
-            padding: 20px 24px;
+            padding: 24px 24px 80px;
             scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
         .lyrics-line {
             font-size: 16px;
@@ -758,7 +777,7 @@
         }
 
         @media (max-width: 768px) {
-            .lyrics-panel { width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
+            .lyrics-panel-content { padding: 16px 20px 64px; }
             .lyrics-line { font-size: 15px; }
             .lyrics-line.active { font-size: 17px; }
         }
@@ -955,13 +974,16 @@
     </div>
 </div>
 
-<!-- 歌词面板 -->
-<div class="lyrics-overlay" id="lyrics-overlay" onclick="Player.closeLyricsPanel()">
-    <div class="lyrics-panel" onclick="event.stopPropagation()">
+<!-- 歌词页（整页滑入） -->
+<div class="lyrics-overlay" id="lyrics-overlay">
+    <div class="lyrics-panel">
         <div class="lyrics-panel-header">
-            <span class="lyrics-panel-title">歌词</span>
-            <button class="lyrics-close-btn" onclick="Player.closeLyricsPanel()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <div class="lyrics-header-text">
+                <div class="lyrics-panel-title">歌词</div>
+                <div class="lyrics-song" id="lyrics-song"></div>
+            </div>
+            <button class="lyrics-close-btn" onclick="Player.closeLyricsPanel()" title="收起歌词">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="4 8 12 16 20 8"/></svg>
             </button>
         </div>
         <div class="lyrics-panel-content" id="lyrics-panel-content">
@@ -1256,6 +1278,8 @@ const Player = {
     async loadLyrics(song) {
         this.lyrics = null;
         const panel = document.getElementById('lyrics-panel-content');
+        const songLabel = document.getElementById('lyrics-song');
+        if (songLabel) songLabel.textContent = song.title + (song.artist ? ' · ' + song.artist : '');
         if (panel) panel.innerHTML = '<div class="lyrics-loading">加载歌词中...</div>';
 
         try {

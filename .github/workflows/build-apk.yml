@@ -50,7 +50,6 @@ jobs:
           # 显式安装平台，带 --verbose 便于排查
           cordova platform add android@15.1.0 --verbose
 
-          cordova plugin add cordova-plugin-statusbar@^4.0.0
           cordova plugin add cordova-plugin-network-information@^3.0.0
 
       - name: Apply native customizations

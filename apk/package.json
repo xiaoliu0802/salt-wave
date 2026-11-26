@@ -16,15 +16,13 @@
   "license": "MIT",
   "devDependencies": {
     "cordova-android": "^15.1.0",
-    "cordova-plugin-network-information": "^3.1.0",
-    "cordova-plugin-statusbar": "^4.0.0"
+    "cordova-plugin-network-information": "^3.1.0"
   },
   "cordova": {
     "platforms": [
       "android"
     ],
     "plugins": {
-      "cordova-plugin-statusbar": {},
       "cordova-plugin-network-information": {}
     }
   }

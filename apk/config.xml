@@ -45,6 +45,5 @@
         </config-file>
     </platform>
 
-    <plugin name="cordova-plugin-statusbar" spec="^4.0.0" />
     <plugin name="cordova-plugin-network-information" spec="^3.0.0" />
 </widget>
