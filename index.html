@@ -420,6 +420,8 @@
             min-width: 0;
             width: 240px;
             flex-shrink: 0;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
         .player-cover {
             width: 56px; height: 56px;
@@ -1058,13 +1060,95 @@
             letter-spacing: .6px;
         }
 
+        /* ===== 播放列表（底部弹层） ===== */
+        .queue-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 430;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            background: rgba(0,0,0,.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .22s ease;
+        }
+        .queue-overlay.open { opacity: 1; pointer-events: auto; }
+        .queue-sheet {
+            width: 100%;
+            max-width: 560px;
+            max-height: 72vh;
+            display: flex;
+            flex-direction: column;
+            background: #16141c;
+            border-radius: 20px 20px 0 0;
+            padding: 6px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+            transform: translateY(100%);
+            transition: transform .28s cubic-bezier(.22,.61,.36,1);
+            box-shadow: 0 -8px 40px rgba(0,0,0,.45);
+        }
+        .queue-overlay.open .queue-sheet { transform: translateY(0); }
+        .queue-meta {
+            padding: 0 4px 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,.45);
+        }
+        .queue-list {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        .queue-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 4px;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+            cursor: pointer;
+        }
+        .queue-item:last-child { border-bottom: 0; }
+        .queue-item:active { background: rgba(255,255,255,.05); }
+        .queue-index {
+            width: 22px;
+            flex-shrink: 0;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255,255,255,.35);
+            font-variant-numeric: tabular-nums;
+        }
+        .queue-item.active .queue-index { color: #8ec5ff; }
+        .queue-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .queue-title {
+            font-size: 14px;
+            color: #ece9f4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .queue-item.active .queue-title { color: #8ec5ff; }
+        .queue-artist {
+            font-size: 11px;
+            color: rgba(255,255,255,.4);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .queue-empty {
+            padding: 32px 0;
+            text-align: center;
+            font-size: 13px;
+            color: rgba(255,255,255,.4);
+        }
+
         @media (max-width: 768px) {
             .lyrics-panel-content { padding: 14px 18px 20px; }
             .lyrics-panel-header { padding: 12px 8px 2px 18px; }
             .lyrics-title { font-size: 19px; }
             .lyrics-footer { padding: 6px 16px calc(6px + env(safe-area-inset-bottom, 0px)); }
             .lc-buttons { gap: 26px; margin-top: 6px; }
-            .lc-secondary { gap: 34px; }
+            .lc-secondary { gap: 24px; }
         }
 
         /* ===== 移动端适配 ===== */
@@ -1211,7 +1295,7 @@
     <!-- 播放器底栏 -->
     <div class="player-bar">
         <div class="player-current">
-            <div class="player-cover" id="player-cover" title="双击切换歌词">
+            <div class="player-cover" id="player-cover" title="点击打开歌词">
                 <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px;">♪</div>
             </div>
             <div class="player-info">
@@ -1302,6 +1386,9 @@
                 <button class="lc-sec-btn" id="lc-shuffle" onclick="Player.toggleShuffle()" title="随机播放">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
                 </button>
+                <button class="lc-sec-btn" id="lc-queue" onclick="QueuePanel.open()" title="播放列表">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>
+                </button>
                 <button class="lc-sec-btn" id="lc-repeat" onclick="Player.toggleRepeat()" title="循环模式">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
                 </button>
@@ -1352,6 +1439,21 @@
                 <div class="ls-source-value" id="ls-source-value">EMBEDDED</div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- 播放列表弹层 -->
+<div class="queue-overlay" id="queue-overlay" onclick="if (event.target === this) QueuePanel.close()">
+    <div class="queue-sheet">
+        <div class="ls-handle"></div>
+        <div class="ls-header">
+            <h3>播放列表</h3>
+            <button class="ls-close" onclick="QueuePanel.close()" title="关闭">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="queue-meta" id="queue-meta"></div>
+        <div class="queue-list" id="queue-list"></div>
     </div>
 </div>
 
@@ -1588,7 +1690,7 @@ const Player = {
         this.audio.addEventListener('play', () => { this.isPlaying = true; this.updatePlayBtn(); });
         this.audio.addEventListener('pause', () => { this.isPlaying = false; this.updatePlayBtn(); });
         this.audio.addEventListener('error', () => { console.error('Audio error'); this.next(); });
-        this.initCoverDoubleTap();
+        this.initLyricsTap();
         LyricsStyle.load();
 
         // 点歌词行跳到该句（仅带时间轴的歌词有效）
@@ -1607,25 +1709,15 @@ const Player = {
         }
     },
 
-    // 双击播放器封面（封面/歌手图）切换歌词面板
-    // 移动端底栏空间不足时歌词按钮会被挤出屏幕，双击封面是备用入口
-    initCoverDoubleTap() {
-        const cover = document.getElementById('player-cover');
-        if (!cover) return;
-        let lastTap = 0;
-        cover.addEventListener('click', (e) => {
-            const now = Date.now();
-            if (now - lastTap < 350) {
-                lastTap = 0;
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggleLyricsPanel();
-            } else {
-                lastTap = now;
-            }
+    // 单击播放器底栏左侧（封面 + 歌名歌手 + 周围空白）打开歌词页
+    // 控制区、右侧按钮的点击不算，避免误触
+    initLyricsTap() {
+        const bar = document.querySelector('.player-bar');
+        if (!bar) return;
+        bar.addEventListener('click', (e) => {
+            if (e.target.closest('.player-controls, .player-right')) return;
+            this.toggleLyricsPanel();
         });
-        // 桌面浏览器在两次 click 之后还会补发 dblclick，这里吞掉避免重复触发
-        cover.addEventListener('dblclick', (e) => e.preventDefault());
     },
 
     playQueue(songs, startIndex = 0) {
@@ -1802,6 +1894,7 @@ const Player = {
         const overlay = document.getElementById('lyrics-overlay');
         if (overlay) overlay.classList.remove('active');
         LyricsStyle.closeSettings();
+        QueuePanel.close();
     },
 
     togglePlay() {
@@ -2022,6 +2115,73 @@ const LyricsStyle = {
     closeSettings() {
         const overlay = document.getElementById('lyrics-settings-overlay');
         if (overlay) overlay.classList.remove('open');
+    }
+};
+
+// ========================================
+//  播放列表（当前播放队列）
+// ========================================
+const QueuePanel = {
+    isOpen() {
+        const el = document.getElementById('queue-overlay');
+        return !!(el && el.classList.contains('open'));
+    },
+
+    open() {
+        this.render();
+        const overlay = document.getElementById('queue-overlay');
+        if (overlay) overlay.classList.add('open');
+        this.scrollToCurrent();
+    },
+
+    close() {
+        const overlay = document.getElementById('queue-overlay');
+        if (overlay) overlay.classList.remove('open');
+    },
+
+    render() {
+        const list = document.getElementById('queue-list');
+        const meta = document.getElementById('queue-meta');
+        if (!list) return;
+        const queue = Player.queue || [];
+        const cur = Player.currentIndex;
+
+        if (meta) {
+            meta.textContent = queue.length
+                ? `共 ${queue.length} 首${cur >= 0 ? ` · 正在播放第 ${cur + 1} 首` : ''}`
+                : '';
+        }
+        if (queue.length === 0) {
+            list.innerHTML = '<div class="queue-empty">还没有播放列表，先点一首歌吧</div>';
+            return;
+        }
+        list.innerHTML = queue.map((song, i) => {
+            const active = i === cur ? ' active' : '';
+            return `<div class="queue-item${active}" onclick="QueuePanel.play(${i})">
+                <span class="queue-index">${i === cur ? '▶' : i + 1}</span>
+                <span class="queue-info">
+                    <span class="queue-title">${escapeHtml(song.title || '未知')}</span>
+                    <span class="queue-artist">${escapeHtml(song.artist || '')}</span>
+                </span>
+            </div>`;
+        }).join('');
+    },
+
+    scrollToCurrent() {
+        const list = document.getElementById('queue-list');
+        if (!list) return;
+        const active = list.querySelector('.queue-item.active');
+        if (!active) return;
+        list.scrollTop = active.offsetTop - list.clientHeight / 2 + active.clientHeight / 2;
+    },
+
+    play(index) {
+        if (!Player.queue[index]) return;
+        Player.currentIndex = index;
+        Player.loadAndPlay();
+        this.render();
+        this.scrollToCurrent();
+        this.close();
     }
 };
 
@@ -2469,6 +2629,9 @@ const AppEnv = {
             window.AndroidBridge.setOnBackCallback('AppEnv.handleBack');
         }
 
+        // 左边缘右滑 = 返回上一层（弹层 → 歌词页 → 视图栈），到底不动，不退出 App
+        this.initEdgeSwipeBack();
+
         // 网络状态提示
         window.addEventListener('offline', () => showToast('网络已断开'));
         window.addEventListener('online', () => showToast('网络已恢复'));
@@ -2477,8 +2640,46 @@ const AppEnv = {
         document.addEventListener('gesturestart', (e) => e.preventDefault());
     },
 
+    // 左边缘右滑返回：逐层收起（播放列表/歌词设置/歌词页/侧边栏/上一个视图）
+    initEdgeSwipeBack() {
+        const EDGE = 28;     // 触起点必须贴左边
+        const MIN_DX = 64;   // 横向位移阈值
+        let startX = 0, startY = 0, tracking = false;
+
+        document.addEventListener('touchstart', (e) => {
+            tracking = false;
+            if (e.touches.length !== 1) return;
+            const t = e.touches[0];
+            const target = e.target;
+            // 滑块、进度条属于横向拖拽控件，不参与返回手势
+            if (target && target.closest && target.closest('input, .lc-track, .ls-range')) return;
+            startX = t.clientX;
+            startY = t.clientY;
+            tracking = startX <= EDGE;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!tracking) return;
+            const t = e.touches[0];
+            const dx = t.clientX - startX;
+            const dy = Math.abs(t.clientY - startY);
+            if (dy > 36) { tracking = false; return; }   // 更接近纵向滚动
+            if (dx >= MIN_DX) {
+                tracking = false;
+                this.handleBack();                        // 只退一层；退无可退时保持不动
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+    },
+
     handleBack() {
-        // 0. 歌词设置面板（先收这一层）
+        // 0. 播放列表弹层（最上层）
+        if (QueuePanel.isOpen()) {
+            QueuePanel.close();
+            return true;
+        }
+        // 1. 歌词设置面板
         const settingsOverlay = document.getElementById('lyrics-settings-overlay');
         if (settingsOverlay && settingsOverlay.classList.contains('open')) {
             LyricsStyle.closeSettings();
