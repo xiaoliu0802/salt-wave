@@ -39,11 +39,17 @@ jobs:
         run: |
           set -e
           cd apk
-          rm -rf www platforms plugins
+          rm -rf www platforms plugins node_modules
           mkdir -p www/libs
           cp ../index.html www/index.html
           cp ../libs/crypto-js.min.js www/libs/crypto-js.min.js
-          cordova platform add android
+
+          # 先安装本地 devDependencies（cordova-android 等），避免后续下载失败
+          npm install --no-save
+
+          # 显式安装平台，带 --verbose 便于排查
+          cordova platform add android@15.1.0 --verbose
+
           cordova plugin add cordova-plugin-statusbar@^4.0.0
           cordova plugin add cordova-plugin-network-information@^3.0.0
 
@@ -78,7 +84,7 @@ jobs:
       - name: Build Debug APK
         run: |
           cd apk
-          cordova build android --debug
+          cordova build android --debug --verbose
 
       - name: Locate build output
         run: |
