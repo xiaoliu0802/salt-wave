@@ -1296,7 +1296,7 @@
         .home-hero-mask {
             position: absolute; left: 0; right: 0; top: 0;
             height: 540px;
-            background: linear-gradient(180deg, rgba(246,244,242,.42) 0%, rgba(246,244,242,.84) 58%, #f6f4f2 100%);
+            background: linear-gradient(180deg, rgba(246,244,242,.62) 0%, rgba(246,244,242,.9) 58%, #f6f4f2 100%);
             z-index: 1;
         }
         .home > *:not(.home-hero-bg):not(.home-hero-mask) { position: relative; z-index: 2; }
@@ -1595,6 +1595,133 @@
             z-index: 5;
         }
         .home-search-fab svg { width: 22px; height: 22px; }
+
+        /* ===== 深色主题（首页 / 设置这套浅色壳的暗色版） ===== */
+        #app.home-mode.dark-ui { background: #121218; }
+        #app.home-mode.dark-ui .content-area { background: #121218; }
+        #app.home-mode.dark-ui .player-bar {
+            background: rgba(28,28,36,.92);
+            box-shadow: 0 10px 30px rgba(0,0,0,.45);
+            color: #ececf1;
+        }
+        #app.home-mode.dark-ui .player-title { color: #f2f2f5; }
+        #app.home-mode.dark-ui .player-artist { color: #9898a2; }
+        #app.home-mode.dark-ui .play-btn { background: #f2f2f5; }
+        #app.home-mode.dark-ui .play-btn svg { color: #141418; }
+        #app.home-mode.dark-ui .ctrl-btn { color: #8d8d97; }
+        #app.home-mode.dark-ui .ctrl-btn.active { color: #ff7f76; }
+        #app.home-mode.dark-ui .progress-track { background: rgba(255,255,255,.14); }
+        #app.home-mode.dark-ui .progress-fill { background: #ff7f76; }
+        #app.home-mode.dark-ui .progress-time { color: #8d8d97; }
+
+        #app.home-mode.dark-ui .home { color: #ececf1; }
+        #app.home-mode.dark-ui .home-hero-mask {
+            background: linear-gradient(180deg, rgba(18,18,24,.55) 0%, rgba(18,18,24,.9) 58%, #121218 100%);
+        }
+        #app.home-mode.dark-ui .home-circle,
+        #app.home-mode.dark-ui .settings-back,
+        #app.home-mode.dark-ui .home-refresh {
+            background: rgba(40,40,50,.72);
+            border-color: rgba(255,255,255,.1);
+            box-shadow: 0 6px 18px rgba(0,0,0,.35);
+        }
+        #app.home-mode.dark-ui .home-name { color: #f4f4f7; }
+        #app.home-mode.dark-ui .settings-page { color: #ececf1; }
+        #app.home-mode.dark-ui .sec-label { color: #8d8d97; }
+        #app.home-mode.dark-ui .sec-group {
+            background: rgba(28,28,36,.82);
+            border-color: rgba(255,255,255,.08);
+            box-shadow: 0 8px 22px rgba(0,0,0,.28);
+        }
+        #app.home-mode.dark-ui .srow { color: #f0f0f4; border-bottom-color: rgba(255,255,255,.08); }
+        #app.home-mode.dark-ui .srow:active { background: rgba(255,255,255,.05); }
+        #app.home-mode.dark-ui .srow-static:active { background: none; }
+        #app.home-mode.dark-ui .srow-sub,
+        #app.home-mode.dark-ui .srow-value { color: #96969f; }
+        #app.home-mode.dark-ui .srow .chev { color: #6f6f7a; }
+        #app.home-mode.dark-ui .srow-slider .s-value { color: #96969f; }
+        #app.home-mode.dark-ui .toggle { background: #3a3a46; }
+
+        #app.home-mode.dark-ui .home-feature-cover { background: #24242e; box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+        #app.home-mode.dark-ui .home-chip {
+            background: rgba(40,40,50,.82); color: #c7c7d1;
+            box-shadow: 0 4px 14px rgba(0,0,0,.3);
+        }
+        #app.home-mode.dark-ui .home-feature-title { color: #f4f4f7; }
+        #app.home-mode.dark-ui .home-feature-artist { color: #9c9ca6; }
+        #app.home-mode.dark-ui .home-play-btn {
+            background: #f2f2f5; color: #141418;
+            box-shadow: 0 10px 24px rgba(0,0,0,.45);
+        }
+        #app.home-mode.dark-ui .home-cast-btn { background: rgba(40,40,50,.82); box-shadow: 0 8px 20px rgba(0,0,0,.3); }
+        #app.home-mode.dark-ui .home-cast-btn.offline { color: #7c7c87; }
+        #app.home-mode.dark-ui .home-sec-title { color: #f4f4f7; }
+        #app.home-mode.dark-ui .home-sec-sub { color: #9a9aa4; }
+        #app.home-mode.dark-ui .lib-card {
+            background: rgba(30,30,38,.72);
+            border-color: rgba(255,255,255,.08);
+            box-shadow: 0 10px 26px rgba(0,0,0,.3);
+        }
+        #app.home-mode.dark-ui .lib-art { background: #24242e; }
+        #app.home-mode.dark-ui .lib-art.single { color: #7a7a86; }
+        #app.home-mode.dark-ui .lib-name { color: #f0f0f4; }
+        #app.home-mode.dark-ui .lib-count { background: rgba(226,96,90,.18); color: #ff9b93; }
+        #app.home-mode.dark-ui .lib-empty { color: #8b8b95; }
+        #app.home-mode.dark-ui .home-more {
+            background: rgba(40,40,50,.72); color: #c2c2cc;
+            border-color: rgba(255,255,255,.08);
+        }
+        #app.home-mode.dark-ui .fav-cover { background: #24242e; box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+        #app.home-mode.dark-ui .fav-title { color: #e8e8ee; }
+        #app.home-mode.dark-ui .fav-artist { color: #9a9aa4; }
+        #app.home-mode.dark-ui .home-search-fab {
+            background: rgba(40,40,50,.92); color: #f0f0f4;
+            box-shadow: 0 10px 26px rgba(0,0,0,.4);
+        }
+
+        /* ===== 选项弹窗（底部浮层） ===== */
+        .pick-overlay {
+            position: fixed; inset: 0; z-index: 360;
+            background: rgba(0,0,0,.42);
+            display: flex; align-items: flex-end;
+            backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+            animation: pickIn .18s ease;
+        }
+        @keyframes pickIn { from { opacity: 0; } to { opacity: 1; } }
+        .pick-sheet {
+            width: 100%;
+            background: #f7f5f3;
+            border-radius: 22px 22px 0 0;
+            padding: 10px 14px calc(14px + var(--sbn));
+            animation: pickUp .24s cubic-bezier(.22,.61,.36,1);
+            max-height: 78vh; overflow-y: auto;
+        }
+        @keyframes pickUp { from { transform: translateY(30px); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
+        .pick-title { font-size: 13px; color: #9a9aa2; padding: 10px 8px 8px; }
+        .pick-list { background: #fff; border-radius: 14px; overflow: hidden; }
+        .pick-row {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 14px 16px; background: none; border: none;
+            border-bottom: 1px solid rgba(0,0,0,.06);
+            color: #17171a; font-size: 16px; text-align: left;
+        }
+        .pick-row:last-child { border-bottom: none; }
+        .pick-row:active { background: rgba(0,0,0,.04); }
+        .pick-row .pick-label { flex: 1; }
+        .pick-check { width: 20px; height: 20px; color: #e2605a; opacity: 0; flex-shrink: 0; }
+        .pick-row.on .pick-check { opacity: 1; }
+        .pick-cancel {
+            width: 100%; margin-top: 10px; padding: 15px;
+            border: none; border-radius: 14px;
+            background: #fff; color: #e2605a; font-size: 16px; font-weight: 600;
+        }
+        html.dark-ui .pick-sheet { background: #17171e; }
+        html.dark-ui .pick-title { color: #8d8d97; }
+        html.dark-ui .pick-list { background: #22222b; }
+        html.dark-ui .pick-row { color: #f0f0f4; border-bottom-color: rgba(255,255,255,.08); }
+        html.dark-ui .pick-row:active { background: rgba(255,255,255,.05); }
+        html.dark-ui .pick-check { color: #ff847b; }
+        html.dark-ui .pick-cancel { background: #22222b; color: #ff847b; }
 
         @media (max-width: 700px) {
             .home { padding: 0 14px 22px; }
@@ -2189,7 +2316,9 @@ const Settings = {
         gapless: false,
         pauseAfterTrack: false,
         autoPlayOnStart: false,
-        mixWithOthers: true
+        mixWithOthers: true,
+        // 外观
+        theme: 'system'
     },
 
     load() {
@@ -2228,6 +2357,22 @@ const Settings = {
         this.state.playNetwork = this.state.playNetwork === '仅 Wi-Fi' ? '任意网络' : '仅 Wi-Fi';
         this.save();
         App.renderSettings();
+    },
+
+    // 主题：system / light / dark
+    setTheme(v) {
+        this.state.theme = v;
+        this.save();
+        App.applyTheme();
+        App.renderSettings();
+    },
+
+    // 通用下拉选项：写值 + 存盘 + 按需重绘
+    setOption(key, v, rerender) {
+        this.state[key] = v;
+        this.save();
+        if (typeof Player !== 'undefined' && Player.applySettings) Player.applySettings();
+        if (rerender !== false) App.renderSettings();
     },
 
     // 判断当前是否只允许 Wi-Fi 播放（蜂窝网被限制）
@@ -2741,7 +2886,7 @@ const Player = {
             this.updatePlayBtn();
             if (this.lyrics) this.updateLyrics();
         } else {
-            App.applyShellTheme(App.currentView === 'home');
+            App.applyTheme();
         }
     },
 
@@ -2751,7 +2896,7 @@ const Player = {
         if (overlay) overlay.classList.remove('active');
         LyricsStyle.closeSettings();
         QueuePanel.close();
-        App.applyShellTheme(App.currentView === 'home');
+        App.applyTheme();
     },
 
     togglePlay() {
@@ -3193,7 +3338,7 @@ const App = {
         document.getElementById('app').classList.toggle('home-mode', lightView);
         document.getElementById('app').classList.toggle('settings-mode', view === 'settings');
         document.getElementById('app').classList.toggle('playlists-mode', view === 'playlists');
-        this.applyShellTheme(lightView);
+        this.applyTheme();
         const content = document.getElementById('page-content');
 
         switch (view) {
@@ -3209,6 +3354,24 @@ const App = {
         }
     },
 
+    // 当前浅色壳是否用浅色（主题 = 浅色 / 跟随系统）
+    prefersLight() {
+        const t = Settings.get('theme') || 'system';
+        if (t === 'light') return true;
+        if (t === 'dark') return false;
+        try { return !window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (e) { return true; }
+    },
+
+    // 应用主题：首页/设置这套壳切浅色或深色，并同步系统栏明暗
+    applyTheme() {
+        const isLightView = (this.currentView === 'home' || this.currentView === 'settings');
+        const light = isLightView && this.prefersLight();
+        const dark = !light;
+        document.getElementById('app').classList.toggle('dark-ui', dark);
+        document.documentElement.classList.toggle('dark-ui', dark);
+        this.applyShellTheme(light);
+    },
+
     // 切换系统状态栏/导航栏明暗（仅 APK 内由原生桥接实现，网页端静默忽略）
     applyShellTheme(light) {
         try {
@@ -3216,6 +3379,57 @@ const App = {
                 window.SaltWaveNative.setTheme(!!light);
             }
         } catch (e) { /* 非 APK 环境 */ }
+    },
+
+    // 跟随系统明暗变化
+    watchSystemTheme() {
+        try {
+            const mq = window.matchMedia('(prefers-color-scheme: dark)');
+            const handler = () => {
+                if ((Settings.get('theme') || 'system') === 'system') this.applyTheme();
+            };
+            if (mq.addEventListener) mq.addEventListener('change', handler);
+            else if (mq.addListener) mq.addListener(handler);
+        } catch (e) {}
+    },
+
+    // 底部选项弹窗：title + 选项列表 + 当前值 + 回调
+    openPicker(title, options, current, onPick) {
+        this.closePicker();
+        const check = '<svg class="pick-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg>';
+        const rows = options.map((o) => {
+            const val = (o && o.value !== undefined) ? o.value : o;
+            const label = (o && o.label !== undefined) ? o.label : o;
+            const on = String(val) === String(current) ? ' on' : '';
+            return `<button class="pick-row${on}" data-val="${escapeHtml(String(val))}">
+                <span class="pick-label">${escapeHtml(String(label))}</span>${check}
+            </button>`;
+        }).join('');
+        const overlay = document.createElement('div');
+        overlay.id = 'pick-overlay';
+        overlay.className = 'pick-overlay';
+        overlay.innerHTML = `<div class="pick-sheet">
+            <div class="pick-title">${escapeHtml(title)}</div>
+            <div class="pick-list">${rows}</div>
+            <button class="pick-cancel">取消</button>
+        </div>`;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) { this.closePicker(); return; }
+            const cancel = e.target.closest('.pick-cancel');
+            if (cancel) { this.closePicker(); return; }
+            const row = e.target.closest('.pick-row');
+            if (row) {
+                const val = row.dataset.val;
+                this.closePicker();
+                try { onPick(val); } catch (err) { console.error(err); }
+            }
+        });
+    },
+
+    closePicker() {
+        const el = document.getElementById('pick-overlay');
+        if (el) el.remove();
     },
 
     async renderHome() {
@@ -3862,10 +4076,14 @@ const App = {
                     <div class="settings-title">设置</div>
                 </div>
 
+                ${group('外观', `
+                    ${rowNav('主题', ({ system: '跟随系统', light: '浅色', dark: '深色' })[s.theme || 'system'], "App.openPicker('主题', [{value:'system',label:'跟随系统'},{value:'light',label:'浅色'},{value:'dark',label:'深色'}], Settings.get('theme') || 'system', function(v){ Settings.setTheme(v); })")}
+                `)}
+
                 ${group('网络与音质', `
-                    ${rowNav('在线播放访问网络', s.playNetwork, 'Settings.cycleNetwork()')}
-                    ${rowNav('Wi-Fi 音质', s.qualityWifi, "Settings.cycleQuality('qualityWifi')")}
-                    ${rowNav('蜂窝网络音质', s.qualityCell, "Settings.cycleQuality('qualityCell')", '按网络自动选用对应档位')}
+                    ${rowNav('在线播放访问网络', s.playNetwork, "App.openPicker('在线播放访问网络', ['任意网络','仅 Wi-Fi'], Settings.get('playNetwork'), function(v){ Settings.setOption('playNetwork', v); })")}
+                    ${rowNav('Wi-Fi 音质', s.qualityWifi, "App.openPicker('Wi-Fi 音质', Settings.QUALITY, Settings.get('qualityWifi'), function(v){ Settings.setOption('qualityWifi', v); })")}
+                    ${rowNav('蜂窝网络音质', s.qualityCell, "App.openPicker('蜂窝网络音质', Settings.QUALITY, Settings.get('qualityCell'), function(v){ Settings.setOption('qualityCell', v); })", '按网络自动选用对应档位')}
                     ${rowToggle('dataOnCell', '非 Wi-Fi 下加载数据', '关闭后仅在 Wi-Fi 下拉取封面与列表')}
                 `)}
 
@@ -3882,7 +4100,7 @@ const App = {
                 `)}
 
                 ${group('定时', `
-                    ${rowNav('睡眠计时器', sleepText, 'Settings.cycleSleep()', '到点自动暂停播放')}
+                    ${rowNav('睡眠计时器', sleepText, "App.openPicker('睡眠计时器', [{value:0,label:'关闭'},{value:15,label:'15 分钟'},{value:30,label:'30 分钟'},{value:60,label:'60 分钟'},{value:90,label:'90 分钟'}], Settings.get('sleepMinutes'), function(v){ Settings.setSleep(Number(v)); })", '到点自动暂停播放')}
                 `)}
 
                 ${group('播放', `
@@ -3899,7 +4117,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.7')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.8')}
                 `)}
             </div>
         `;
@@ -4074,6 +4292,11 @@ const AppEnv = {
     },
 
     handleBack() {
+        // 0. 选项弹窗（最上层）
+        if (document.getElementById('pick-overlay')) {
+            App.closePicker();
+            return true;
+        }
         // 0. 播放列表弹层（最上层）
         if (QueuePanel.isOpen()) {
             QueuePanel.close();
@@ -4192,7 +4415,10 @@ document.getElementById('playlist-name-input').addEventListener('keydown', (e) =
 
 try { Player.init(); } catch (e) { console.error(e); showFatal('Player.init', e); }
 try { AppEnv.init(); } catch (e) { console.error(e); showFatal('AppEnv.init', e); }
+try { App.watchSystemTheme(); } catch (e) { console.error(e); }
 try { App.autoLogin(); } catch (e) { console.error(e); showFatal('App.autoLogin', e); }
 </script>
 </body>
 </html>
+
+

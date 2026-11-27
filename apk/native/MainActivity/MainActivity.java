@@ -229,25 +229,52 @@ public class MainActivity extends CordovaActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                // 系统栏透明（内容本身铺到状态栏下面），只切换图标明暗
+                // 系统栏透明（内容本身铺到状态栏下面），窗口底色跟着主题走，
+                // 避免状态栏那一条露出与页面不同的底色（浅色页出现灰带）
+                int bg = Color.parseColor(light ? "#f6f4f2" : "#121218");
                 getWindow().setStatusBarColor(Color.TRANSPARENT);
                 getWindow().setNavigationBarColor(Color.TRANSPARENT);
-                int iconFlags = 0;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    iconFlags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    iconFlags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                }
-                // API 30+ 由 setDecorFitsSystemWindows(false) 负责延伸；更低版本需要 layout flags
+                getWindow().getDecorView().setBackgroundColor(bg);
+                if (appWebView != null) appWebView.setBackgroundColor(bg);
+
                 int layoutFlags = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ? 0
                         : (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-                getWindow().getDecorView().setSystemUiVisibility((light ? iconFlags : 0) | layoutFlags);
+                getWindow().getDecorView().setSystemUiVisibility(
+                        (light ? legacyLightFlags() : 0) | layoutFlags);
+
+                // Android 11+ 上 setSystemUiVisibility 对图标明暗已基本无效，必须走 InsetsController
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    try {
+                        android.view.WindowInsetsController c = getWindow().getInsetsController();
+                        if (c != null) {
+                            int mask = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                                     | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                            int cur = c.getSystemBarsAppearance();
+                            int next = light ? (cur | mask) : (cur & ~mask);
+                            c.setSystemBarsAppearance(next, mask);
+                        }
+                    } catch (Throwable t) {
+                        Log.w(TAG, "insets appearance failed", t);
+                    }
+                }
                 syncInsets();
             }
         });
+    }
+
+    /** 低版本（API 23~29）用的旧式浅色系统栏 flag */
+    private int legacyLightFlags()
+    {
+        int flags = 0;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        }
+        return flags;
     }
 
     /**
