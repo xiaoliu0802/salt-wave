@@ -13,17 +13,48 @@ import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import org.apache.cordova.*;
 
 public class MainActivity extends CordovaActivity
 {
+    private static final String TAG = "SaltWave";
     private WebView appWebView;
+
+    /** 启动/运行异常兜底：把堆栈直接画到屏幕上，避免静默闪退 */
+    private void showCrashScreen(String tag, Throwable t)
+    {
+        Log.e(TAG, "crash in " + tag, t);
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Salt Wave 启动异常: ").append(tag).append("\n\n");
+            sb.append(t.getClass().getName()).append(": ").append(t.getMessage()).append("\n\n");
+            for (StackTraceElement el : t.getStackTrace()) {
+                sb.append(el.toString()).append("\n");
+            }
+            Throwable cause = t.getCause();
+            if (cause != null) {
+                sb.append("\nCaused by: ").append(cause.toString()).append("\n");
+            }
+            TextView tv = new TextView(this);
+            tv.setText(sb.toString());
+            tv.setTextColor(Color.WHITE);
+            tv.setTextSize(11);
+            tv.setPadding(24, 24, 24, 24);
+            tv.setBackgroundColor(Color.parseColor("#1a0008"));
+            ScrollView sv = new ScrollView(this);
+            sv.addView(tv);
+            setContentView(sv);
+        } catch (Throwable ignored) { /* 连兜底界面都画不出来 */ }
+    }
 
     @Override
     @SuppressLint("SetJavaScriptEnabled")
@@ -31,6 +62,30 @@ public class MainActivity extends CordovaActivity
     {
         super.onCreate(savedInstanceState);
 
+        // 全局未捕获异常也记进 Logcat，方便排查
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread thread, Throwable ex) {
+                Log.e(TAG, "uncaught on " + thread.getName(), ex);
+                try {
+                    runOnUiThread(new Runnable() {
+                        @Override public void run() { showCrashScreen("uncaught/" + thread.getName(), ex); }
+                    });
+                } catch (Throwable ignored) {}
+                try { Thread.sleep(1200); } catch (InterruptedException ignored) {}
+                System.exit(2);
+            }
+        });
+
+        try {
+            initShell();
+        } catch (Throwable t) {
+            showCrashScreen("onCreate", t);
+        }
+    }
+
+    private void initShell()
+    {
         Bundle extras = getIntent().getExtras();
         if (extras != null && extras.getBoolean("cdvStartInBackground", false)) {
             moveTaskToBack(true);

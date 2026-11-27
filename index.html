@@ -1240,7 +1240,7 @@
         #app.home-mode .page-content { padding: 0; overflow: visible; }
         #app.home-mode { background: #f6f4f2; }
         #app.home-mode .page-content::-webkit-scrollbar { width: 0; height: 0; }
-        #app.home-mode *::-webkit-scrollbar { width: 0; height: 0; }
+        #app.home-mode .content-area::-webkit-scrollbar { width: 0; height: 0; }
         #app.home-mode .player-bar {
             background: rgba(255,255,255,.92);
             backdrop-filter: blur(22px);
@@ -3549,7 +3549,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.3')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.4')}
                 `)}
             </div>
         `;
@@ -3800,6 +3800,28 @@ function showToast(msg) {
     setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
+// ===== 启动错误可见化（真机白屏/异常时不再静默）=====
+function showFatal(tag, err) {
+    try {
+        const old = document.getElementById('fatal-banner');
+        if (old) old.remove();
+        const box = document.createElement('div');
+        box.id = 'fatal-banner';
+        box.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#b00020;color:#fff;' +
+            'font:12px/1.5 monospace;padding:12px 14px;max-height:45%;overflow:auto;white-space:pre-wrap;';
+        const msg = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
+        box.textContent = '[启动错误] ' + tag + '\n' + msg;
+        document.body.appendChild(box);
+    } catch (e) { /* 连错误条都画不出来时无计可施 */ }
+}
+
+window.addEventListener('error', (e) => {
+    if (e && (e.message || e.error)) showFatal('window.onerror', e.error || e.message);
+});
+window.addEventListener('unhandledrejection', (e) => {
+    showFatal('unhandledrejection', e && e.reason ? e.reason : 'unknown');
+});
+
 // ===== 初始化 =====
 document.getElementById('login-form').addEventListener('submit', (e) => { e.preventDefault(); App.login(); });
 document.getElementById('playlist-name-input').addEventListener('keydown', (e) => {
@@ -3807,9 +3829,9 @@ document.getElementById('playlist-name-input').addEventListener('keydown', (e) =
     if (e.key === 'Escape') App.closePlaylistModal();
 });
 
-Player.init();
-AppEnv.init();
-App.autoLogin();
+try { Player.init(); } catch (e) { console.error(e); showFatal('Player.init', e); }
+try { AppEnv.init(); } catch (e) { console.error(e); showFatal('AppEnv.init', e); }
+try { App.autoLogin(); } catch (e) { console.error(e); showFatal('App.autoLogin', e); }
 </script>
 </body>
 </html>
