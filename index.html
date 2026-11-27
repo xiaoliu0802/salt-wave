@@ -35,6 +35,7 @@
         *::-webkit-scrollbar { width: 6px; height: 6px; }
         *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
         *::-webkit-scrollbar-track { background: transparent; }
+        html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; }
 
         html, body {
             height: 100%;
@@ -229,6 +230,13 @@
             padding: 6px;
         }
         .menu-toggle svg { width: 24px; height: 24px; }
+        .bar-back {
+            display: flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--bg-elevated); color: var(--text-dim);
+            flex-shrink: 0;
+        }
+        .bar-back svg { width: 20px; height: 20px; }
         .search-box {
             flex: 1;
             max-width: 480px;
@@ -1230,6 +1238,8 @@
         #app.home-mode .top-bar { display: none; }
         #app.home-mode .content-area { background: #f6f4f2; }
         #app.home-mode .page-content { padding: 0; overflow: visible; }
+        #app.home-mode { background: #f6f4f2; }
+        #app.home-mode .page-content::-webkit-scrollbar { width: 0; height: 0; }
         #app.home-mode .player-bar {
             background: rgba(255,255,255,.92);
             backdrop-filter: blur(22px);
@@ -1272,6 +1282,8 @@
 
         .home-head {
             display: flex; align-items: center; gap: 12px;
+            justify-content: center;
+            position: relative;
             padding: max(14px, env(safe-area-inset-top)) 0 6px;
         }
         .home-circle {
@@ -1286,12 +1298,88 @@
             flex-shrink: 0;
         }
         .home-circle svg { width: 22px; height: 22px; }
-        .home-circle:last-child { margin-left: auto; }
+        .home-circle:last-child {
+            position: absolute; right: 0;
+            top: max(14px, env(safe-area-inset-top));
+            margin-left: 0;
+        }
+        .home-head .home-name {
+            margin: 0; font-size: 27px; font-weight: 700;
+            letter-spacing: 0; text-align: center; max-width: 62%;
+        }
         .home-name {
             font-size: 42px; font-weight: 800; letter-spacing: -.5px;
             color: #17171a; margin: 18px 0 8px;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
+
+        /* ===== 设置页 ===== */
+        #app.settings-mode .page-content { overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+        .settings-page {
+            padding-bottom: calc(30px + env(safe-area-inset-bottom));
+            color: #1b1b1d;
+        }
+        .settings-top {
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+            padding: max(14px, env(safe-area-inset-top)) 16px 10px;
+        }
+        .settings-back {
+            position: absolute; left: 14px;
+            width: 44px; height: 42px; border-radius: 50%;
+            background: rgba(255,255,255,.75);
+            border: 1px solid rgba(255,255,255,.9);
+            color: #e2605a;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 18px rgba(0,0,0,.08);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+        .settings-title { font-size: 20px; font-weight: 700; }
+        .sec-label {
+            padding: 16px 30px 8px;
+            font-size: 13px; color: #9a9aa2;
+        }
+        .sec-group {
+            margin: 0 14px 14px;
+            background: rgba(255,255,255,.8);
+            border: 1px solid rgba(255,255,255,.9);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 22px rgba(0,0,0,.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .srow {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 13px 16px;
+            min-height: 54px;
+            background: none; border: none;
+            border-bottom: 1px solid rgba(0,0,0,.06);
+            color: #17171a; text-align: left;
+        }
+        .srow:last-child { border-bottom: none; }
+        .srow:active { background: rgba(0,0,0,.04); }
+        .srow-label { flex: 1; font-size: 16px; line-height: 1.3; }
+        .srow-sub { display: block; font-size: 12px; color: #9a9aa2; margin-top: 3px; font-weight: 400; }
+        .srow-value { font-size: 14px; color: #8b8b93; margin-right: 2px; }
+        .srow .chev { width: 16px; height: 16px; color: #b9b9c0; flex-shrink: 0; }
+        .srow-slider { flex-wrap: wrap; row-gap: 2px; }
+        .srow-slider .s-slider { flex: 1 1 100%; width: 100%; accent-color: #e2605a; margin: 0; }
+        .srow-slider .s-value { font-size: 13px; color: #8b8b93; min-width: 70px; text-align: right; }
+        .toggle {
+            width: 50px; height: 30px; border-radius: 15px;
+            background: #d8d8dd; position: relative; flex-shrink: 0;
+            transition: background .2s;
+        }
+        .toggle::after {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 24px; height: 24px; border-radius: 50%;
+            background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+            transition: transform .2s;
+        }
+        .toggle.on { background: #e2605a; }
+        .toggle.on::after { transform: translateX(20px); }
 
         .home-feature {
             display: flex; gap: 18px; align-items: flex-start;
@@ -1450,53 +1538,12 @@
 <!-- ===== 主应用 ===== -->
 <div id="app">
     <div class="main-container">
-        <!-- 侧边栏 -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">🎵</div>
-                <div class="logo-text">Salt Wave</div>
-            </div>
-            <nav class="nav-menu">
-                <button class="nav-item active" data-view="home" onclick="App.navigate('home')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    首页
-                </button>
-                <button class="nav-item" data-view="albums" onclick="App.navigate('albums')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-                    专辑
-                </button>
-                <button class="nav-item" data-view="artists" onclick="App.navigate('artists')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-                    艺术家
-                </button>
-                <button class="nav-item" data-view="songs" onclick="App.navigate('songs')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                    歌曲
-                </button>
-                <button class="nav-item" data-view="playlists" onclick="App.navigate('playlists')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                    歌单
-                </button>
-                <button class="nav-item" data-view="search" onclick="App.navigate('search')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    搜索
-                </button>
-            </nav>
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-avatar" id="user-avatar">U</div>
-                    <div class="user-name" id="user-name">User</div>
-                    <button class="logout-btn" onclick="App.logout()">退出</button>
-                </div>
-            </div>
-        </aside>
-        <div class="sidebar-overlay" id="sidebar-overlay" onclick="App.toggleSidebar(false)"></div>
 
         <!-- 内容区 -->
         <div class="content-area">
             <div class="top-bar">
-                <button class="menu-toggle" onclick="App.toggleSidebar()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                <button class="bar-back" onclick="App.navBack()" title="返回">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 6 9 12 15 18"/></svg>
                 </button>
                 <div class="search-box">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1956,6 +2003,14 @@ const SubsonicAPI = {
         params.append('v', '1.16.1');
         params.append('c', this.clientName);
         params.append('id', id);
+        // 按网络类型套用音质档位（Navidrome 支持 format + maxBitRate 转码）
+        try {
+            const q = Settings.qualityParams();
+            if (q) {
+                params.append('format', q.format);
+                params.append('maxBitRate', String(q.maxBitRate));
+            }
+        } catch (e) { /* 设置未就绪时按原音质请求 */ }
         return `${this.serverUrl}/rest/stream?${params.toString()}`;
     },
 
@@ -2011,6 +2066,130 @@ const SubsonicAPI = {
 };
 
 // ========================================
+//  应用设置（本地持久化）
+// ========================================
+const Settings = {
+    key: 'saltwave_app_settings',
+    state: {
+        // 网络与音质
+        qualityWifi: '原音质',
+        qualityCell: '128 kbps',
+        playNetwork: '任意网络',
+        dataOnCell: true,
+        preloadOnHome: true,
+        // 歌词
+        lyricsOn: true,
+        miniLyric: false,
+        lyricDelay: 0,
+        sleepMinutes: 0,
+        // 播放
+        volumeBalance: false,
+        crossfade: true,
+        gapless: false,
+        pauseAfterTrack: false,
+        autoPlayOnStart: false,
+        mixWithOthers: true
+    },
+
+    load() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.key) || 'null');
+            if (saved && typeof saved === 'object') Object.assign(this.state, saved);
+        } catch (e) { /* 忽略损坏配置 */ }
+    },
+
+    save() {
+        try { localStorage.setItem(this.key, JSON.stringify(this.state)); } catch (e) {}
+    },
+
+    get(k) { return this.state[k]; },
+
+    toggle(k) {
+        this.state[k] = !this.state[k];
+        this.save();
+        document.querySelectorAll('[data-toggle="' + k + '"]').forEach((el) => {
+            el.classList.toggle('on', !!this.state[k]);
+        });
+        if (typeof Player !== 'undefined' && Player.applySettings) Player.applySettings();
+    },
+
+    // 音质档位轮换
+    QUALITY: ['原音质', '320 kbps', '192 kbps', '128 kbps'],
+
+    cycleQuality(k) {
+        const idx = this.QUALITY.indexOf(this.state[k]);
+        this.state[k] = this.QUALITY[(idx + 1) % this.QUALITY.length];
+        this.save();
+        App.renderSettings();
+    },
+
+    cycleNetwork() {
+        this.state.playNetwork = this.state.playNetwork === '仅 Wi-Fi' ? '任意网络' : '仅 Wi-Fi';
+        this.save();
+        App.renderSettings();
+    },
+
+    // 判断当前是否只允许 Wi-Fi 播放（蜂窝网被限制）
+    blockedByNetwork() {
+        if (this.state.playNetwork !== '仅 Wi-Fi') return false;
+        try {
+            const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (c && c.type) return c.type === 'cellular';
+        } catch (e) {}
+        return false;
+    },
+
+    setLyricDelay(v) {
+        this.state.lyricDelay = Number(v) || 0;
+        this.save();
+        const el = document.getElementById('s-lyric-delay-val');
+        if (el) el.textContent = (this.state.lyricDelay > 0 ? '+' : '') + this.state.lyricDelay + ' ms';
+    },
+
+    setSleep(min) {
+        this.state.sleepMinutes = min;
+        this.save();
+        if (Player.sleepTimer) { clearTimeout(Player.sleepTimer); Player.sleepTimer = null; }
+        if (min > 0) {
+            Player.sleepTimer = setTimeout(() => {
+                Player.audio.pause();
+                showToast('睡眠计时器：已暂停播放');
+                Settings.state.sleepMinutes = 0;
+                Settings.save();
+            }, min * 60 * 1000);
+            showToast(`睡眠计时器：${min} 分钟后暂停`);
+        } else {
+            showToast('睡眠计时器已关闭');
+        }
+        App.renderSettings();
+    },
+
+    cycleSleep() {
+        const options = [0, 15, 30, 60, 90];
+        const idx = options.indexOf(this.state.sleepMinutes);
+        this.setSleep(options[(idx + 1) % options.length]);
+    },
+
+    // 根据网络类型返回当前生效的音质（蜂窝 / Wi-Fi）
+    currentQuality() {
+        let cell = false;
+        try {
+            const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (c && c.type) cell = c.type === 'cellular';
+            else if (c && c.effectiveType) cell = !/wifi|ethernet/i.test(String(c.type || '')) && c.effectiveType !== 'wifi';
+        } catch (e) { cell = false; }
+        return cell ? this.state.qualityCell : this.state.qualityWifi;
+    },
+
+    qualityParams() {
+        const q = this.currentQuality();
+        if (q === '原音质') return null;
+        const rate = parseInt(q, 10) || 128;
+        return { format: 'mp3', maxBitRate: rate };
+    }
+};
+
+// ========================================
 //  播放器控制
 // ========================================
 const Player = {
@@ -2026,8 +2205,15 @@ const Player = {
 
     init() {
         this.audio = document.getElementById('audio-player');
+        Settings.load();
         this.audio.volume = this.volume;
-        this.audio.addEventListener('timeupdate', () => { this.updateProgress(); this.updateLyrics(); });
+        this.audio.addEventListener('timeupdate', () => {
+            this.updateProgress();
+            this.updateLyrics();
+            this.updateMiniLyric();
+            this.maybeFadeOut();
+            this.maybePreloadNext();
+        });
         this.audio.addEventListener('ended', () => this.handleEnded());
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
         this.audio.addEventListener('play', () => { this.isPlaying = true; this.updatePlayBtn(); });
@@ -2035,6 +2221,7 @@ const Player = {
         this.audio.addEventListener('error', () => { console.error('Audio error'); this.next(); });
         this.initLyricsTap();
         LyricsStyle.load();
+        this.applySettings();
 
         // 点歌词行跳到该句（仅带时间轴的歌词有效）
         const lyricsPanel = document.getElementById('lyrics-panel-content');
@@ -2059,8 +2246,136 @@ const Player = {
         if (!bar) return;
         bar.addEventListener('click', (e) => {
             if (e.target.closest('.player-controls, .player-right')) return;
+            if (!Settings.get('lyricsOn')) return;
             this.toggleLyricsPanel();
         });
+    },
+
+    // 设置项生效：音量平衡 / Mini 歌词
+    applySettings() {
+        this.enableVolumeBalance(!!Settings.get('volumeBalance'));
+        if (!Settings.get('miniLyric')) {
+            const el = document.getElementById('player-artist');
+            const song = this.queue[this.currentIndex];
+            if (el && song) el.textContent = song.artist || '';
+        }
+    },
+
+    initAudioGraph() {
+        if (this._graphTried) return;
+        this._graphTried = true;
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            this.ctx = new AC();
+            this.srcNode = this.ctx.createMediaElementSource(this.audio);
+            this.compNode = this.ctx.createDynamicsCompressor();
+            this.srcNode.connect(this.compNode);
+            this.compNode.connect(this.ctx.destination);
+            this._graphOk = true;
+        } catch (e) {
+            console.warn('Audio graph unavailable', e);
+            this._graphOk = false;
+        }
+    },
+
+    // 音量平衡：动态压缩，把忽大忽小的曲目音量压到同一水平
+    enableVolumeBalance(on) {
+        if (on && !this._graphOk) this.initAudioGraph();
+        if (!this._graphOk) {
+            if (on) {
+                Settings.state.volumeBalance = false;
+                Settings.save();
+                document.querySelectorAll('[data-toggle="volumeBalance"]').forEach((el) => el.classList.remove('on'));
+                showToast('当前音频通路不支持音量平衡');
+            }
+            return;
+        }
+        const c = this.compNode;
+        if (on) {
+            c.threshold.value = -22;
+            c.knee.value = 18;
+            c.ratio.value = 8;
+            c.attack.value = 0.02;
+            c.release.value = 0.4;
+        } else {
+            c.threshold.value = 0;
+            c.knee.value = 0;
+            c.ratio.value = 1;
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+        }
+    },
+
+    fadeIn() {
+        const target = this.volume || 0.7;
+        if (!Settings.get('crossfade')) {
+            this.audio.volume = target;
+            return;
+        }
+        if (this._fadeTimer) { clearInterval(this._fadeTimer); this._fadeTimer = null; }
+        const durMs = 1200;
+        const t0 = performance.now();
+        this.audio.volume = 0;
+        this._fadeTimer = setInterval(() => {
+            const p = Math.min(1, (performance.now() - t0) / durMs);
+            this.audio.volume = Math.max(0, Math.min(1, target * p));
+            if (p >= 1) { clearInterval(this._fadeTimer); this._fadeTimer = null; }
+        }, 50);
+    },
+
+    maybeFadeOut() {
+        if (!Settings.get('crossfade') || this._fadingOut || !this.isPlaying) return;
+        const dur = this.audio.duration || 0;
+        if (!dur) return;
+        const left = dur - (this.audio.currentTime || 0);
+        if (left > 0 && left <= 1.2) {
+            this._fadingOut = true;
+            const startVol = this.audio.volume;
+            const durMs = 1100;
+            const t0 = performance.now();
+            const timer = setInterval(() => {
+                const p = Math.min(1, (performance.now() - t0) / durMs);
+                this.audio.volume = Math.max(0, startVol * (1 - p));
+                if (p >= 1) clearInterval(timer);
+            }, 50);
+        }
+    },
+
+    maybePreloadNext() {
+        if (!Settings.get('gapless')) return;
+        const left = (this.audio.duration || 0) - (this.audio.currentTime || 0);
+        if (!left || left > 15) return;
+        if (this._preloadedIndex === this.currentIndex) return;
+        this._preloadedIndex = this.currentIndex;
+        const nextIdx = this.currentIndex + 1;
+        if (nextIdx >= this.queue.length) return;
+        const song = this.queue[nextIdx];
+        if (!song) return;
+        try {
+            const a = new Audio();
+            a.preload = 'auto';
+            a.src = SubsonicAPI.getStreamUrl(song.id);
+        } catch (e) { /* 预加载失败不影响播放 */ }
+    },
+
+    updateMiniLyric() {
+        if (!Settings.get('miniLyric')) return;
+        const el = document.getElementById('player-artist');
+        if (!el) return;
+        if (!this.lyrics || !this.lyrics.synced || !this.lyrics.lines) {
+            const song = this.queue[this.currentIndex];
+            if (song) el.textContent = song.artist || '';
+            return;
+        }
+        const t = (this.audio.currentTime || 0) + (Settings.get('lyricDelay') || 0) / 1000;
+        let cur = null;
+        for (const l of this.lyrics.lines) {
+            if (l.time >= 0 && l.time <= t) cur = l;
+            else if (l.time > t) break;
+        }
+        if (cur && cur.text) el.textContent = cur.text;
     },
 
     playQueue(songs, startIndex = 0) {
@@ -2080,10 +2395,17 @@ const Player = {
 
     async loadAndPlay() {
         if (this.currentIndex < 0 || this.currentIndex >= this.queue.length) return;
+        if (Settings.blockedByNetwork()) {
+            showToast('已限制为仅 Wi-Fi 在线播放，请连接 Wi-Fi 后重试');
+            return;
+        }
         const song = this.queue[this.currentIndex];
         const url = SubsonicAPI.getStreamUrl(song.id);
         this.audio.src = url;
+        this._fadingOut = false;
+        this._preloadedIndex = -1;
         this.audio.play().catch(e => console.error('Play failed:', e));
+        this.fadeIn();
         this.updateUI(song);
         this.loadLyrics(song);
         App.highlightPlayingSong();
@@ -2172,7 +2494,7 @@ const Player = {
 
     updateLyrics() {
         if (!this.lyrics || !this.lyricsPanelOpen) return;
-        const cur = this.audio.currentTime || 0;
+        const cur = Math.max(0, (this.audio.currentTime || 0) + (Settings.get('lyricDelay') || 0) / 1000);
         const dur = this.audio.duration || 0;
         const lines = this.lyrics.lines;
         const panel = document.getElementById('lyrics-panel-content');
@@ -2279,6 +2601,11 @@ const Player = {
     },
 
     handleEnded() {
+        if (Settings.get('pauseAfterTrack')) {
+            this.isPlaying = false;
+            this.updatePlayBtn();
+            return;
+        }
         if (this.repeat === 'one') {
             this.audio.currentTime = 0;
             this.audio.play();
@@ -2651,8 +2978,6 @@ const App = {
     showApp() {
         document.getElementById('login-view').style.display = 'none';
         document.getElementById('app').classList.add('active');
-        document.getElementById('user-name').textContent = SubsonicAPI.username;
-        document.getElementById('user-avatar').textContent = SubsonicAPI.username.charAt(0).toUpperCase();
     },
 
     logout() {
@@ -2673,13 +2998,15 @@ const App = {
         document.querySelectorAll('.nav-item').forEach(el => {
             el.classList.toggle('active', el.dataset.view === view);
         });
-        this.toggleSidebar(false);
-        document.getElementById('app').classList.toggle('home-mode', view === 'home');
-        this.applyShellTheme(view === 'home');
+        const lightView = (view === 'home' || view === 'settings');
+        document.getElementById('app').classList.toggle('home-mode', lightView);
+        document.getElementById('app').classList.toggle('settings-mode', view === 'settings');
+        this.applyShellTheme(lightView);
         const content = document.getElementById('page-content');
 
         switch (view) {
             case 'home': this.renderHome(); break;
+            case 'settings': this.renderSettings(); break;
             case 'albums': this.renderAlbums(); break;
             case 'artists': this.renderArtists(); break;
             case 'songs': this.renderSongs(); break;
@@ -2775,14 +3102,11 @@ const App = {
                 <div class="home-hero-mask"></div>
 
                 <div class="home-head">
-                    <button class="home-circle" onclick="App.toggleSidebar(true)" title="菜单">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 6 9 12 15 18"/></svg>
-                    </button>
-                    <button class="home-circle" onclick="App.toggleSidebar(true)" title="设置">
+                    <div class="home-name">${escapeHtml(userName)}</div>
+                    <button class="home-circle" onclick="App.openSettings()" title="设置">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
                     </button>
                 </div>
-                <div class="home-name">${escapeHtml(userName)}</div>
 
                 <section class="home-feature">
                     <div class="home-feature-cover">
@@ -3144,12 +3468,100 @@ const App = {
         }
     },
 
-    toggleSidebar(force) {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        const open = force !== undefined ? force : !sidebar.classList.contains('open');
-        sidebar.classList.toggle('open', open);
-        overlay.classList.toggle('active', open);
+    // 顶栏返回按钮：退回上一个视图
+    navBack() {
+        AppEnv.handleBack();
+    },
+
+    openSettings() {
+        this.navigate('settings');
+    },
+
+    // 设置页：分组列表（参考系统设置样式）
+    renderSettings() {
+        const content = document.getElementById('page-content');
+        const s = Settings.state;
+        const chev = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>';
+        const rowToggle = (key, label, sub) => `
+            <button class="srow" onclick="Settings.toggle('${key}')">
+                <span class="srow-label">${label}${sub ? `<span class="srow-sub">${sub}</span>` : ''}</span>
+                <span class="toggle ${s[key] ? 'on' : ''}" data-toggle="${key}"></span>
+            </button>`;
+        const rowNav = (label, value, onclick, sub) => `
+            <button class="srow" onclick="${onclick}">
+                <span class="srow-label">${label}${sub ? `<span class="srow-sub">${sub}</span>` : ''}</span>
+                ${value ? `<span class="srow-value">${value}</span>` : ''}${chev}
+            </button>`;
+        const group = (label, rows) => `<div class="sec-label">${label}</div><div class="sec-group">${rows}</div>`;
+
+        const sleepText = s.sleepMinutes > 0 ? `${s.sleepMinutes} 分钟` : '关闭';
+
+        content.innerHTML = `
+            <div class="settings-page">
+                <div class="settings-top">
+                    <button class="settings-back" onclick="App.navBack()" aria-label="返回">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="22" height="22"><path d="M15 5l-7 7 7 7"/></svg>
+                    </button>
+                    <div class="settings-title">设置</div>
+                </div>
+
+                ${group('网络与音质', `
+                    ${rowNav('在线播放访问网络', s.playNetwork, 'Settings.cycleNetwork()')}
+                    ${rowNav('Wi-Fi 音质', s.qualityWifi, "Settings.cycleQuality('qualityWifi')")}
+                    ${rowNav('蜂窝网络音质', s.qualityCell, "Settings.cycleQuality('qualityCell')", '按网络自动选用对应档位')}
+                    ${rowToggle('dataOnCell', '非 Wi-Fi 下加载数据', '关闭后仅在 Wi-Fi 下拉取封面与列表')}
+                `)}
+
+                ${group('歌词', `
+                    ${rowToggle('lyricsOn', '歌词开关')}
+                    ${rowToggle('miniLyric', 'Mini 播放器显示歌词')}
+                    ${rowNav('歌词设置', '', 'App.openLyricsSettings()')}
+                    <div class="srow srow-slider">
+                        <span class="srow-label">歌词延迟<span class="srow-sub">正值提前，负值延后</span></span>
+                        <span class="s-value" id="s-lyric-delay-val">${s.lyricDelay > 0 ? '+' : ''}${s.lyricDelay} ms</span>
+                        <input class="s-slider" type="range" min="-1500" max="1500" step="50" value="${s.lyricDelay}"
+                            oninput="Settings.setLyricDelay(this.value)">
+                    </div>
+                `)}
+
+                ${group('定时', `
+                    ${rowNav('睡眠计时器', sleepText, 'Settings.cycleSleep()', '到点自动暂停播放')}
+                `)}
+
+                ${group('播放', `
+                    ${rowToggle('volumeBalance', '音量平衡', '自动压平不同曲目的音量起伏')}
+                    ${rowToggle('crossfade', '淡入淡出', '切歌时音量平滑过渡')}
+                    ${rowToggle('gapless', '无缝播放', '提前预加载下一首')}
+                    ${rowToggle('pauseAfterTrack', '当前歌曲播放结束后暂停')}
+                    ${rowToggle('autoPlayOnStart', '启动后自动播放', '打开 App 后自动播放上次队列')}
+                    ${rowToggle('mixWithOthers', '与其他音频共同播放')}
+                `)}
+
+                ${group('App 设置', `
+                    ${rowNav('服务器', escapeHtml((SubsonicAPI.serverUrl || '').replace(/^https?:\/\//, '')))}
+                    ${rowNav('账号', escapeHtml(SubsonicAPI.username || ''))}
+                    ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
+                    ${rowNav('清除登录信息并退出', '', 'App.logout()')}
+                    ${rowNav('关于 Salt Wave', 'v1.0.3')}
+                `)}
+            </div>
+        `;
+    },
+
+    openLyricsSettings() {
+        if (!Player.lyricsPanelOpen) Player.toggleLyricsPanel();
+        setTimeout(() => LyricsStyle.openSettings(), 260);
+    },
+
+    // 清空曲库缓存并回首页重新拉取
+    forceRefreshLibrary() {
+        try {
+            Object.keys(localStorage).forEach((k) => {
+                if (k.indexOf('saltwave_all_songs_') === 0) localStorage.removeItem(k);
+            });
+        } catch (e) {}
+        showToast('已清空曲库缓存，正在重新加载');
+        this.navigate('home');
     },
 
     highlightPlayingSong() {
@@ -3329,13 +3741,7 @@ const AppEnv = {
             App.closePlaylistModal();
             return true;
         }
-        // 3. 侧边栏
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar && sidebar.classList.contains('open')) {
-            App.toggleSidebar(false);
-            return true;
-        }
-        // 4. 返回上一个视图
+        // 3. 返回上一个视图
         const stack = App.navStack || [];
         if (stack.length > 1) {
             stack.pop();
