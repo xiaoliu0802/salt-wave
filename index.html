@@ -773,6 +773,16 @@
             background: rgba(255,255,255,.26);
         }
         .lyrics-head { min-width: 0; }
+        .lyrics-more {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255,255,255,.1);
+            border: 1px solid rgba(255,255,255,.12);
+            color: #eaeaf0;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            margin-top: -2px;
+        }
+        .lyrics-more svg { width: 20px; height: 20px; }
         .lyrics-title {
             font-size: 20px;
             font-weight: 600;
@@ -1681,7 +1691,7 @@
 
         /* ===== 选项弹窗（底部浮层） ===== */
         .pick-overlay {
-            position: fixed; inset: 0; z-index: 360;
+            position: fixed; inset: 0; z-index: 480;
             background: rgba(0,0,0,.42);
             display: flex; align-items: flex-end;
             backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
@@ -1722,6 +1732,88 @@
         html.dark-ui .pick-row:active { background: rgba(255,255,255,.05); }
         html.dark-ui .pick-check { color: #ff847b; }
         html.dark-ui .pick-cancel { background: #22222b; color: #ff847b; }
+
+        /* ===== 歌曲操作面板（播放页 ⋯） ===== */
+        .ss-overlay {
+            position: fixed; inset: 0; z-index: 465;
+            background: rgba(0,0,0,.45);
+            display: flex; align-items: flex-end;
+            animation: pickIn .18s ease;
+        }
+        .ss-sheet {
+            width: 100%;
+            background: #1b1b22;
+            border-radius: 24px 24px 0 0;
+            padding: 8px 14px calc(14px + var(--sbn));
+            color: #f2f2f5;
+            max-height: 82vh; overflow-y: auto;
+            animation: pickUp .24s cubic-bezier(.22,.61,.36,1);
+            border-top: 1px solid rgba(255,255,255,.06);
+        }
+        .ss-topbar { position: relative; height: 26px; display: flex; align-items: center; justify-content: center; }
+        .ss-topbar::before {
+            content: ''; width: 44px; height: 4px; border-radius: 2px;
+            background: rgba(255,255,255,.22);
+        }
+        .ss-close {
+            position: absolute; right: 0; top: -4px;
+            width: 38px; height: 38px; border-radius: 50%;
+            background: rgba(255,255,255,.09); color: #e8e8ee;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .ss-close svg { width: 18px; height: 18px; }
+
+        .ss-song {
+            display: flex; align-items: center; gap: 14px;
+            padding: 10px 4px 16px;
+        }
+        .ss-cover {
+            width: 56px; height: 56px; border-radius: 12px; overflow: hidden;
+            background: #2a2a34; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; color: #7a7a86;
+        }
+        .ss-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .ss-song-meta { min-width: 0; }
+        .ss-song-title { font-size: 19px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ss-song-sub { font-size: 13px; color: #96969f; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .ss-group { background: #24242c; border-radius: 16px; overflow: hidden; }
+        .ss-row {
+            display: flex; align-items: center; gap: 14px;
+            width: 100%; padding: 15px 16px; background: none; border: none;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            color: #f2f2f5; font-size: 16px; text-align: left;
+        }
+        .ss-row:last-child { border-bottom: none; }
+        .ss-row:active { background: rgba(255,255,255,.05); }
+        .ss-ico { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: #ff7f76; flex-shrink: 0; }
+        .ss-ico svg { width: 19px; height: 19px; }
+        .ss-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ss-value { font-size: 13px; color: #96969f; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ss-row.danger .ss-ico, .ss-row.danger .ss-label { color: #ff6b61; }
+
+        /* 歌曲信息弹窗 */
+        .si-overlay {
+            position: fixed; inset: 0; z-index: 475;
+            background: rgba(0,0,0,.5);
+            display: flex; align-items: center; justify-content: center;
+            padding: 22px;
+        }
+        .si-card {
+            width: 100%; max-width: 380px;
+            background: #1e1e26; color: #f2f2f5;
+            border-radius: 20px; padding: 20px 18px 14px;
+        }
+        .si-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+        .si-row { display: flex; gap: 14px; padding: 8px 0; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,.06); }
+        .si-row:last-child { border-bottom: none; }
+        .si-key { width: 76px; color: #96969f; flex-shrink: 0; }
+        .si-val { flex: 1; word-break: break-all; }
+        .si-btn {
+            width: 100%; margin-top: 14px; padding: 13px;
+            border-radius: 14px; background: rgba(255,255,255,.1);
+            color: #f2f2f5; font-size: 16px; font-weight: 600;
+        }
 
         @media (max-width: 700px) {
             .home { padding: 0 14px 22px; }
@@ -1844,6 +1936,9 @@
                 <div class="lyrics-title" id="lyrics-title"></div>
                 <div class="lyrics-artist" id="lyrics-artist"></div>
             </div>
+            <button class="lyrics-more" onclick="Player.openSongActions()" title="更多操作" aria-label="更多操作">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+            </button>
         </div>
         <div class="lyrics-panel-content" id="lyrics-panel-content">
             <div class="lyrics-empty">点击歌曲开始播放后显示歌词</div>
@@ -2219,6 +2314,11 @@ const SubsonicAPI = {
 
     async deletePlaylist(id) {
         return this._call('deletePlaylist', { id });
+    },
+
+    // 往已有歌单追加一首歌
+    async addToPlaylist(playlistId, songId) {
+        return this._call('updatePlaylist', { playlistId, songIdToAdd: songId });
     },
 
     getStreamUrl(id) {
@@ -2897,6 +2997,149 @@ const Player = {
         LyricsStyle.closeSettings();
         QueuePanel.close();
         App.applyTheme();
+    },
+
+    // ===== 播放页：歌曲操作面板 =====
+    openSongActions() {
+        const song = this.queue[this.currentIndex];
+        if (!song) { showToast('还没有在播放的歌曲'); return; }
+        this.closeSongActions();
+        const cover = SubsonicAPI.getCoverArtUrl(song.coverArt || song.id, 200);
+        const sub = [song.artist, song.album].filter(Boolean).join(' · ') || '未知来源';
+        const ico = {
+            add: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+            next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="7" x2="16" y2="7"/><line x1="4" y1="12" x2="16" y2="12"/><line x1="4" y1="17" x2="10" y2="17"/><polyline points="16 15 19 18 16 21"/></svg>',
+            share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>',
+            artist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M5 21c1.6-4 4-6 7-6s5.4 2 7 6"/></svg>',
+            album: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/></svg>',
+            info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.6" r="1"/></svg>',
+            remove: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 20 7"/><path d="M7 7v13h10V7"/><path d="M10 4h4"/></svg>'
+        };
+        const row = (act, icon, label, value) => `
+            <button class="ss-row${act === 'remove' ? ' danger' : ''}" data-act="${act}">
+                <span class="ss-ico">${icon}</span>
+                <span class="ss-label">${label}</span>
+                ${value ? `<span class="ss-value">${escapeHtml(value)}</span>` : ''}
+            </button>`;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'ss-overlay';
+        overlay.className = 'ss-overlay';
+        overlay.innerHTML = `<div class="ss-sheet">
+            <div class="ss-topbar">
+                <button class="ss-close" data-act="close" aria-label="关闭">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="ss-song">
+                <div class="ss-cover">${cover ? `<img src="${cover}" alt="" onerror="this.style.display='none'">` : '♪'}</div>
+                <div class="ss-song-meta">
+                    <div class="ss-song-title">${escapeHtml(song.title || '未知歌曲')}</div>
+                    <div class="ss-song-sub">${escapeHtml(sub)}</div>
+                </div>
+            </div>
+            <div class="ss-group">
+                ${row('playlist', ico.add, '添加到歌单')}
+                ${row('next', ico.next, '下一首播放')}
+                ${row('share', ico.share, '分享')}
+                ${row('artist', ico.artist, '艺术家', song.artist || '')}
+                ${row('album', ico.album, '专辑', song.album || '')}
+                ${row('info', ico.info, '歌曲信息')}
+                ${this.queue.length > 1 ? row('remove', ico.remove, '从播放队列移除') : ''}
+            </div>
+        </div>`;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) { this.closeSongActions(); return; }
+            const btn = e.target.closest('[data-act]');
+            if (!btn) return;
+            this.songAction(btn.dataset.act, song);
+        });
+    },
+
+    closeSongActions() {
+        const el = document.getElementById('ss-overlay');
+        if (el) el.remove();
+        const info = document.getElementById('si-overlay');
+        if (info) info.remove();
+    },
+
+    songAction(act, song) {
+        if (act === 'close') { this.closeSongActions(); return; }
+        if (act === 'playlist') {
+            this.closeSongActions();
+            App.addSongToPlaylist(song);
+            return;
+        }
+        if (act === 'next') {
+            this.closeSongActions();
+            this.queue.splice(this.currentIndex + 1, 0, song);
+            showToast('已设为下一首播放');
+            return;
+        }
+        if (act === 'share') {
+            this.closeSongActions();
+            const text = `《${song.title || ''}》- ${song.artist || ''}${song.album ? '（专辑：' + song.album + '）' : ''} · 来自 Salt Wave`;
+            copyText(text).then(() => showToast('歌曲信息已复制，可粘贴分享'))
+                .catch(() => showToast('复制失败'));
+            return;
+        }
+        if (act === 'artist') {
+            this.closeSongActions();
+            if (song.artist) App.searchArtist(song.artist);
+            return;
+        }
+        if (act === 'album') {
+            this.closeSongActions();
+            if (song.albumId) App.openAlbum(song.albumId);
+            else showToast('这首歌没有关联专辑信息');
+            return;
+        }
+        if (act === 'info') {
+            this.closeSongActions();
+            this.showSongInfo(song);
+            return;
+        }
+        if (act === 'remove') {
+            this.closeSongActions();
+            this.removeCurrentFromQueue();
+            return;
+        }
+    },
+
+    showSongInfo(song) {
+        let quality = '原音质';
+        try { quality = Settings.currentQuality(); } catch (e) {}
+        const rows = [
+            ['标题', song.title || ''],
+            ['艺术家', song.artist || ''],
+            ['专辑', song.album || ''],
+            ['时长', formatTime(song.duration)],
+            ['音质', quality],
+            ['歌曲 ID', song.id || ''],
+            ['专辑 ID', song.albumId || '—']
+        ].map(([k, v]) => `<div class="si-row"><span class="si-key">${k}</span><span class="si-val">${escapeHtml(String(v))}</span></div>`).join('');
+        const overlay = document.createElement('div');
+        overlay.id = 'si-overlay';
+        overlay.className = 'si-overlay';
+        overlay.innerHTML = `<div class="si-card">
+            <div class="si-title">歌曲信息</div>
+            ${rows}
+            <button class="si-btn">关闭</button>
+        </div>`;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay || e.target.closest('.si-btn')) overlay.remove();
+        });
+    },
+
+    removeCurrentFromQueue() {
+        if (this.queue.length <= 1) { showToast('队列里只剩这一首'); return; }
+        const wasPlaying = this.isPlaying;
+        this.queue.splice(this.currentIndex, 1);
+        if (this.currentIndex >= this.queue.length) this.currentIndex = this.queue.length - 1;
+        this.loadAndPlay();
+        showToast('已从播放队列移除');
     },
 
     togglePlay() {
@@ -3611,7 +3854,7 @@ const App = {
         }
         const norm = (s) => ({
             id: s.id, title: s.title, artist: s.artist, album: s.album,
-            coverArt: s.coverArt, duration: s.duration
+            coverArt: s.coverArt, duration: s.duration, albumId: s.albumId
         });
         const queue = [norm(song)];
         (this.homeRandoms || []).forEach((s) => {
@@ -4000,6 +4243,43 @@ const App = {
         }
     },
 
+    // 按艺术家名搜索（播放页"艺术家"入口）
+    searchArtist(name) {
+        if (!name) return;
+        this.navigate('search');
+        const input = document.getElementById('search-input');
+        if (input) {
+            input.value = name;
+            input.dispatchEvent(new Event('input'));
+        }
+    },
+
+    // 把当前歌曲加进某个已有歌单
+    async addSongToPlaylist(song) {
+        if (!song || !song.id) return;
+        let lists = [];
+        try {
+            lists = await SubsonicAPI.getPlaylists();
+        } catch (e) {
+            showToast('读取歌单失败：' + e.message);
+            return;
+        }
+        if (!lists.length) {
+            showToast('还没有歌单，先到「播放列表」新建一个');
+            return;
+        }
+        const opts = lists.map((p) => ({ value: p.id, label: p.name }));
+        this.openPicker('添加到歌单', opts, null, async (pid) => {
+            const picked = lists.find((p) => String(p.id) === String(pid));
+            try {
+                await SubsonicAPI.addToPlaylist(pid, song.id);
+                showToast(`已添加到「${picked ? picked.name : '歌单'}」`);
+            } catch (e) {
+                showToast('添加失败：' + e.message);
+            }
+        });
+    },
+
     openPlaylistModal() {
         document.getElementById('playlist-modal').classList.add('active');
         document.getElementById('playlist-name-input').focus();
@@ -4117,7 +4397,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.8')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.9')}
                 `)}
             </div>
         `;
@@ -4292,6 +4572,15 @@ const AppEnv = {
     },
 
     handleBack() {
+        // 0. 歌曲信息 / 歌曲操作面板（最上层）
+        if (document.getElementById('si-overlay')) {
+            document.getElementById('si-overlay').remove();
+            return true;
+        }
+        if (document.getElementById('ss-overlay')) {
+            Player.closeSongActions();
+            return true;
+        }
         // 0. 选项弹窗（最上层）
         if (document.getElementById('pick-overlay')) {
             App.closePicker();
@@ -4372,6 +4661,30 @@ function formatTime(seconds) {
     return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// 复制文本：优先剪贴板 API，WebView 里回退到 textarea
+function copyText(text) {
+    return new Promise((resolve, reject) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(resolve).catch(() => fallback());
+        } else {
+            fallback();
+        }
+        function fallback() {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                const ok = document.execCommand && document.execCommand('copy');
+                document.body.removeChild(ta);
+                ok ? resolve() : reject(new Error('copy unsupported'));
+            } catch (e) { reject(e); }
+        }
+    });
+}
+
 function escapeHtml(str) {
     if (str === undefined || str === null) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -4420,5 +4733,7 @@ try { App.autoLogin(); } catch (e) { console.error(e); showFatal('App.autoLogin'
 </script>
 </body>
 </html>
+
+
 
 
