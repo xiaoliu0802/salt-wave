@@ -1360,11 +1360,12 @@
         }
         .srow:last-child { border-bottom: none; }
         .srow:active { background: rgba(0,0,0,.04); }
+        .srow-static:active { background: none; }
         .srow-label { flex: 1; font-size: 16px; line-height: 1.3; }
         .srow-sub { display: block; font-size: 12px; color: #9a9aa2; margin-top: 3px; font-weight: 400; }
         .srow-value { font-size: 14px; color: #8b8b93; margin-right: 2px; }
         .srow .chev { width: 16px; height: 16px; color: #b9b9c0; flex-shrink: 0; }
-        .srow-slider { flex-wrap: wrap; row-gap: 2px; }
+        .srow-slider { flex-wrap: wrap; row-gap: 2px; padding-bottom: 14px; }
         .srow-slider .s-slider { flex: 1 1 100%; width: 100%; accent-color: #e2605a; margin: 0; }
         .srow-slider .s-value { font-size: 13px; color: #8b8b93; min-width: 70px; text-align: right; }
         .toggle {
@@ -3493,6 +3494,11 @@ const App = {
                 ${value ? `<span class="srow-value">${value}</span>` : ''}${chev}
             </button>`;
         const group = (label, rows) => `<div class="sec-label">${label}</div><div class="sec-group">${rows}</div>`;
+        const rowInfo = (label, value) => `
+            <div class="srow srow-static">
+                <span class="srow-label">${label}</span>
+                ${value ? `<span class="srow-value">${value}</span>` : ''}
+            </div>`;
 
         const sleepText = s.sleepMinutes > 0 ? `${s.sleepMinutes} 分钟` : '关闭';
 
@@ -3538,11 +3544,11 @@ const App = {
                 `)}
 
                 ${group('App 设置', `
-                    ${rowNav('服务器', escapeHtml((SubsonicAPI.serverUrl || '').replace(/^https?:\/\//, '')))}
-                    ${rowNav('账号', escapeHtml(SubsonicAPI.username || ''))}
+                    ${rowInfo('服务器', escapeHtml((SubsonicAPI.serverUrl || '').replace(/^https?:\/\//, '')))}
+                    ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowNav('关于 Salt Wave', 'v1.0.3')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.3')}
                 `)}
             </div>
         `;
