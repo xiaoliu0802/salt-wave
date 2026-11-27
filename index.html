@@ -1820,6 +1820,7 @@
         .ss-ico svg { width: 19px; height: 19px; }
         .ss-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .ss-value { font-size: 13px; color: #96969f; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ss-inline-val { color: #96969f; font-size: 13px; }
         .ss-row.danger .ss-ico, .ss-row.danger .ss-label { color: #ff6b61; }
 
         /* 歌曲信息弹窗 */
@@ -3066,6 +3067,12 @@ const Player = {
                 <span class="ss-label">${label}</span>
                 ${value ? `<span class="ss-value"${act === 'repeat' ? ' id="ss-repeat-val"' : ''}>${escapeHtml(value)}</span>` : ''}
             </button>`;
+        // 值紧跟在标签后（“艺术家：Beyond”），不做右对齐
+        const rowInline = (act, icon, label, value) => `
+            <button class="ss-row" data-act="${act}">
+                <span class="ss-ico">${icon}</span>
+                <span class="ss-label">${label}：<span class="ss-inline-val">${escapeHtml(value || '未标注')}</span></span>
+            </button>`;
 
         const overlay = document.createElement('div');
         overlay.id = 'ss-overlay';
@@ -3087,8 +3094,8 @@ const Player = {
                 ${row('playlist', ico.add, '添加到歌单')}
                 ${row('next', ico.next, '下一首播放')}
                 ${row('share', ico.share, '分享')}
-                ${row('artist', ico.artist, '艺术家', song.artist || '')}
-                ${row('album', ico.album, '专辑', song.album || '')}
+                ${rowInline('artist', ico.artist, '艺术家', song.artist || '未标注')}
+                ${rowInline('album', ico.album, '专辑', song.album || '未标注')}
                 ${row('repeat', ico.repeat, '播放模式', this.repeatLabel())}
                 ${row('info', ico.info, '歌曲信息')}
                 ${this.queue.length > 1 ? row('remove', ico.remove, '从播放队列移除') : ''}
@@ -3132,11 +3139,13 @@ const Player = {
         }
         if (act === 'artist') {
             this.closeSongActions();
+            if (this.lyricsPanelOpen) this.closeLyricsPanel();
             if (song.artist) App.searchArtist(song.artist);
             return;
         }
         if (act === 'album') {
             this.closeSongActions();
+            if (this.lyricsPanelOpen) this.closeLyricsPanel();
             if (song.albumId) App.openAlbum(song.albumId);
             else showToast('这首歌没有关联专辑信息');
             return;
@@ -4280,8 +4289,25 @@ const App = {
         return `${s}秒`;
     },
 
+    // 从播放页等非列表场景进入详情：只切壳，不触发列表重新加载
+    enterDetailView(parent) {
+        this.currentView = parent || 'albums';
+        this.navStack = this.navStack || [];
+        if (this.navStack[this.navStack.length - 1] !== this.currentView) {
+            this.navStack.push(this.currentView);
+            if (this.navStack.length > 30) this.navStack.shift();
+        }
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.toggle('active', el.dataset.view === this.currentView);
+        });
+        const app = document.getElementById('app');
+        app.classList.remove('home-mode', 'settings-mode', 'playlists-mode');
+        this.applyTheme();
+    },
+
     async openAlbum(id) {
         this.detailParent = 'albums';
+        this.enterDetailView('albums');
         const content = document.getElementById('page-content');
         content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
         try {
@@ -4544,7 +4570,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.11')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.12')}
                 `)}
             </div>
         `;
