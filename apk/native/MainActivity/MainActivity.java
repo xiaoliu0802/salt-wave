@@ -4,7 +4,7 @@
     关键实现：
     1. WebView 允许混合内容 + 关闭 file 域的同源限制，让播放器直接请求 Navidrome API（绕过 CORS）
     2. 硬件返回键转发给网页 JS（先关面板，再回上一页，最后退出）
-    3. 沉浸式状态栏，适配深色主题
+    3. 状态栏 / 导航栏颜色可由网页切换（首页浅色 + 深色图标）
 */
 
 package com.saltwave.player;
@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
@@ -35,12 +36,10 @@ public class MainActivity extends CordovaActivity
             moveTaskToBack(true);
         }
 
-        // 深色状态栏 / 导航栏
+        // 深色状态栏 / 导航栏（首页为浅色时由网页切换）
         getWindow().setStatusBarColor(Color.parseColor("#0f0f1e"));
         getWindow().setNavigationBarColor(Color.parseColor("#0f0f1e"));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        loadUrl(launchUrl);
 
         // 拿到 Cordova 内部的 WebView，调整设置以绕过 CORS
         appWebView = (WebView) appView.getEngine().getView();
@@ -68,6 +67,39 @@ public class MainActivity extends CordovaActivity
 
         appWebView.setBackgroundColor(Color.parseColor("#0f0f1e"));
         appWebView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+
+        // 供网页切换状态栏明暗（首页浅色时需要深色图标）
+        appWebView.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void setTheme(final boolean light) {
+                applyShellTheme(light);
+            }
+        }, "SaltWaveNative");
+
+        loadUrl(launchUrl);
+    }
+
+    /** 切换系统栏明暗：light=true 时用浅色底 + 深色图标 */
+    public void applyShellTheme(final boolean light)
+    {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                String barBg = light ? "#f6f4f2" : "#0f0f1e";
+                getWindow().setStatusBarColor(Color.parseColor(barBg));
+                getWindow().setNavigationBarColor(Color.parseColor(barBg));
+                int flag = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                        ? (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                            | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR : 0))
+                        : 0;
+                View decor = getWindow().getDecorView();
+                if (light) {
+                    decor.setSystemUiVisibility(flag);
+                } else {
+                    decor.setSystemUiVisibility(0);
+                }
+            }
+        });
     }
 
     /**
