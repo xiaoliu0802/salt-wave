@@ -904,24 +904,54 @@
         .lc-btn svg { width: 22px; height: 22px; }
         .lc-play { width: 52px; height: 52px; }
         .lc-play svg { width: 28px; height: 28px; }
-        .lc-secondary {
+        /* 底部操作条：随机 / 定时 / 频谱 / 队列 / 更多（5 等分，对齐参考布局） */
+        .lc-actions {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 40px;
-            margin-top: 2px;
+            justify-content: space-between;
+            margin: 4px 4px 0;
         }
         .lc-sec-btn {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 38px;
-            height: 38px;
-            color: rgba(255,255,255,.45);
-            transition: color .15s;
+            flex: 1 1 0;
+            height: 44px;
+            color: rgba(255,255,255,.5);
+            border-radius: 12px;
+            transition: color .15s, background .15s;
+            -webkit-tap-highlight-color: transparent;
         }
-        .lc-sec-btn.active { color: #fff; }
-        .lc-sec-btn svg { width: 18px; height: 18px; }
+        .lc-sec-btn:active { color: #fff; background: rgba(255,255,255,.08); }
+        .lc-sec-btn.active { color: var(--accent, #ff7f76); }
+        .lc-sec-btn svg { width: 21px; height: 21px; }
+        .lc-sec-badge {
+            position: absolute;
+            top: 6px;
+            right: 50%;
+            transform: translateX(20px);
+            min-width: 15px;
+            padding: 0 3px;
+            height: 14px;
+            line-height: 14px;
+            border-radius: 7px;
+            background: var(--accent, #ff7f76);
+            color: #1a1a22;
+            font-size: 9px;
+            font-weight: 700;
+            text-align: center;
+            display: none;
+        }
+        .lc-sec-badge.on { display: block; }
+        /* 频谱可视化画布 */
+        .lc-spectrum {
+            display: none;
+            width: 100%;
+            height: 46px;
+            margin: 0 0 2px;
+            opacity: .95;
+        }
         .lyrics-panel-content {
             flex: 1;
             min-height: 0;
@@ -1936,14 +1966,12 @@
                 <div class="lyrics-title" id="lyrics-title"></div>
                 <div class="lyrics-artist" id="lyrics-artist"></div>
             </div>
-            <button class="lyrics-more" onclick="Player.openSongActions()" title="更多操作" aria-label="更多操作">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
-            </button>
         </div>
         <div class="lyrics-panel-content" id="lyrics-panel-content">
             <div class="lyrics-empty">点击歌曲开始播放后显示歌词</div>
         </div>
         <div class="lyrics-footer">
+            <canvas class="lc-spectrum" id="lc-spectrum"></canvas>
             <button class="lc-label" id="lc-settings-btn" onclick="LyricsStyle.openSettings()" title="歌词设置">
                 <span class="lc-chip">词</span><span id="lc-source">EMBEDDED</span>
                 <svg class="lc-label-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>
@@ -1966,15 +1994,22 @@
                     <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
                 </button>
             </div>
-            <div class="lc-secondary">
+            <div class="lc-actions">
                 <button class="lc-sec-btn" id="lc-shuffle" onclick="Player.toggleShuffle()" title="随机播放">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                </button>
+                <button class="lc-sec-btn" id="lc-sleep" onclick="Player.openSleepPicker()" title="睡眠计时器">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 15 15"/><polyline points="9 2 15 2"/></svg>
+                    <span class="lc-sec-badge" id="lc-sleep-badge"></span>
+                </button>
+                <button class="lc-sec-btn" id="lc-spectrum-btn" onclick="Player.toggleSpectrum()" title="频谱可视化">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="16" x2="4" y2="10"/><line x1="8" y1="19" x2="8" y2="7"/><line x1="12" y1="21" x2="12" y2="5"/><line x1="16" y1="19" x2="16" y2="9"/><line x1="20" y1="16" x2="20" y2="12"/></svg>
                 </button>
                 <button class="lc-sec-btn" id="lc-queue" onclick="QueuePanel.open()" title="播放列表">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>
                 </button>
-                <button class="lc-sec-btn" id="lc-repeat" onclick="Player.toggleRepeat()" title="循环模式">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                <button class="lc-sec-btn" id="lc-more" onclick="Player.openSongActions()" title="更多操作">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
                 </button>
             </div>
         </div>
@@ -2545,6 +2580,7 @@ const Player = {
     isPlaying: false,
     shuffle: false,
     repeat: 'none',
+    spectrumOn: false,
     volume: 0.7,
     lyrics: null,
     lyricsPanelOpen: false,
@@ -2681,6 +2717,13 @@ const Player = {
             this.srcNode.connect(this.gainNode);
             this.gainNode.connect(this.compNode);
             this.compNode.connect(this.ctx.destination);
+            // 频谱分析（终端分支，不参与发声链路）
+            try {
+                this.analyser = this.ctx.createAnalyser();
+                this.analyser.fftSize = 256;
+                this.analyser.smoothingTimeConstant = 0.82;
+                this.compNode.connect(this.analyser);
+            } catch (e) { this.analyser = null; }
             this._graphOk = true;
         } catch (e) {
             console.warn('Audio graph unavailable', e);
@@ -2984,6 +3027,7 @@ const Player = {
             this.updateProgress();
             this.updateDuration();
             this.updatePlayBtn();
+            this.syncFooterState();
             if (this.lyrics) this.updateLyrics();
         } else {
             App.applyTheme();
@@ -3013,13 +3057,15 @@ const Player = {
             artist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M5 21c1.6-4 4-6 7-6s5.4 2 7 6"/></svg>',
             album: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/></svg>',
             info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.6" r="1"/></svg>',
+            tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
+            repeat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
             remove: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 20 7"/><path d="M7 7v13h10V7"/><path d="M10 4h4"/></svg>'
         };
         const row = (act, icon, label, value) => `
             <button class="ss-row${act === 'remove' ? ' danger' : ''}" data-act="${act}">
                 <span class="ss-ico">${icon}</span>
                 <span class="ss-label">${label}</span>
-                ${value ? `<span class="ss-value">${escapeHtml(value)}</span>` : ''}
+                ${value ? `<span class="ss-value"${act === 'repeat' ? ' id="ss-repeat-val"' : ''}>${escapeHtml(value)}</span>` : ''}
             </button>`;
 
         const overlay = document.createElement('div');
@@ -3044,6 +3090,8 @@ const Player = {
                 ${row('share', ico.share, '分享')}
                 ${row('artist', ico.artist, '艺术家', song.artist || '')}
                 ${row('album', ico.album, '专辑', song.album || '')}
+                ${row('tag', ico.tag, '用音乐标签编辑')}
+                ${row('repeat', ico.repeat, '播放模式', this.repeatLabel())}
                 ${row('info', ico.info, '歌曲信息')}
                 ${this.queue.length > 1 ? row('remove', ico.remove, '从播放队列移除') : ''}
             </div>
@@ -3093,6 +3141,15 @@ const Player = {
             this.closeSongActions();
             if (song.albumId) App.openAlbum(song.albumId);
             else showToast('这首歌没有关联专辑信息');
+            return;
+        }
+        if (act === 'tag') {
+            this.closeSongActions();
+            this.openTagApp();
+            return;
+        }
+        if (act === 'repeat') {
+            this.toggleRepeat();
             return;
         }
         if (act === 'info') {
@@ -3240,10 +3297,124 @@ const Player = {
         const idx = modes.indexOf(this.repeat);
         this.repeat = modes[(idx + 1) % modes.length];
         const btn = document.getElementById('repeat-btn');
-        btn.classList.toggle('active', this.repeat !== 'none');
+        if (btn) btn.classList.toggle('active', this.repeat !== 'none');
         const lcRepeat = document.getElementById('lc-repeat');
         if (lcRepeat) lcRepeat.classList.toggle('active', this.repeat !== 'none');
-        showToast(this.repeat === 'none' ? '循环已关闭' : this.repeat === 'all' ? '列表循环' : '单曲循环');
+        const ssRepeat = document.getElementById('ss-repeat-val');
+        if (ssRepeat) ssRepeat.textContent = this.repeatLabel();
+        showToast(this.repeat === 'none' ? '顺序播放' : this.repeat === 'all' ? '列表循环' : '单曲循环');
+    },
+
+    repeatLabel() {
+        return this.repeat === 'all' ? '列表循环' : this.repeat === 'one' ? '单曲循环' : '顺序播放';
+    },
+
+    // 打开睡眠计时器选择
+    openSleepPicker() {
+        const cur = Settings.get('sleepMinutes') || 0;
+        App.openPicker('睡眠计时器', [
+            { value: 0, label: '关闭' },
+            { value: 15, label: '15 分钟' },
+            { value: 30, label: '30 分钟' },
+            { value: 60, label: '60 分钟' },
+            { value: 90, label: '90 分钟' }
+        ], cur, (v) => {
+            Settings.setSleep(Number(v));
+            this.syncFooterState();
+        });
+    },
+
+    // 底部按钮状态同步（随机 / 睡眠 / 频谱）
+    syncFooterState() {
+        const sh = document.getElementById('lc-shuffle');
+        if (sh) sh.classList.toggle('active', !!this.shuffle);
+        const sl = document.getElementById('lc-sleep');
+        const badge = document.getElementById('lc-sleep-badge');
+        const mins = Settings.get('sleepMinutes') || 0;
+        if (sl) sl.classList.toggle('active', mins > 0);
+        if (badge) {
+            badge.textContent = mins > 0 ? String(mins) : '';
+            badge.classList.toggle('on', mins > 0);
+        }
+        const sp = document.getElementById('lc-spectrum-btn');
+        if (sp) sp.classList.toggle('active', !!this.spectrumOn);
+    },
+
+    // 频谱可视化（走 Web Audio AnalyserNode，非假动画）
+    toggleSpectrum() {
+        if (!this.analyser) this.initAudioGraph();
+        if (!this.analyser) {
+            showToast('音频通路不可用，无法开启频谱');
+            return;
+        }
+        this.spectrumOn = !this.spectrumOn;
+        const cv = document.getElementById('lc-spectrum');
+        if (cv) cv.style.display = this.spectrumOn ? 'block' : 'none';
+        this.syncFooterState();
+        if (this.spectrumOn) {
+            this.startSpectrum();
+        } else {
+            this.stopSpectrum();
+        }
+    },
+
+    startSpectrum() {
+        this.stopSpectrum();
+        const cv = document.getElementById('lc-spectrum');
+        if (!cv || !this.analyser) return;
+        const g = cv.getContext('2d');
+        const data = new Uint8Array(this.analyser.frequencyBinCount);
+        const draw = () => {
+            if (!this.spectrumOn) return;
+            const dpr = window.devicePixelRatio || 1;
+            const w = cv.clientWidth || 320;
+            const h = cv.clientHeight || 46;
+            if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+                cv.width = Math.round(w * dpr);
+                cv.height = Math.round(h * dpr);
+            }
+            g.setTransform(dpr, 0, 0, dpr, 0, 0);
+            g.clearRect(0, 0, w, h);
+            this.analyser.getByteFrequencyData(data);
+            const bars = 40;
+            const gap = 2;
+            const bw = Math.max(2, (w - gap * (bars - 1)) / bars);
+            const mid = h - 6;
+            for (let i = 0; i < bars; i++) {
+                const di = Math.floor((i * data.length * 0.55) / bars);
+                const v = (data[di] || 0) / 255;
+                const bh = Math.max(2, Math.pow(v, 1.25) * (mid - 2));
+                const x = i * (bw + gap);
+                const grad = g.createLinearGradient(0, mid, 0, mid - bh);
+                grad.addColorStop(0, 'rgba(255,127,118,.28)');
+                grad.addColorStop(1, 'rgba(255,170,160,.95)');
+                g.fillStyle = grad;
+                g.fillRect(x, mid - bh, bw, bh);
+            }
+            this._specRaf = requestAnimationFrame(draw);
+        };
+        this._specRaf = requestAnimationFrame(draw);
+    },
+
+    stopSpectrum() {
+        if (this._specRaf) { cancelAnimationFrame(this._specRaf); this._specRaf = null; }
+    },
+
+    // 打开手机里的「音乐标签」App（原生 Intent）
+    openTagApp() {
+        const n = window.SaltWaveNative;
+        if (!n || typeof n.openTagApp !== 'function') {
+            showToast('只有 Android 版能直接打开音乐标签');
+            return;
+        }
+        try {
+            const r = String(n.openTagApp() || '');
+            if (r === 'missing') showToast('没找到「音乐标签」应用，请先安装');
+            else if (r.indexOf('error') === 0) showToast('打开失败：' + r.slice(6));
+            else if (r) showToast('已打开音乐标签 · ' + r.split('|')[1]);
+        } catch (e) {
+            showToast('打开音乐标签失败');
+        }
     },
 
     updateProgress() {
@@ -4397,7 +4568,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.9')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.10')}
                 `)}
             </div>
         `;

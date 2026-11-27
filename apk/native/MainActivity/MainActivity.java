@@ -10,6 +10,9 @@
 package com.saltwave.player;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -150,6 +153,48 @@ public class MainActivity extends CordovaActivity
             @JavascriptInterface
             public void setTheme(final boolean light) {
                 applyShellTheme(light);
+            }
+
+            /** 打开手机上已安装的「音乐标签」类 App（按应用名/包名匹配） */
+            @JavascriptInterface
+            public String openTagApp() {
+                try {
+                    PackageManager pm = MainActivity.this.getPackageManager();
+                    final String[] needles = { "音乐标签", "musictag", "music tag", "mp3tag", "tag editor", "标签编辑" };
+                    String targetPkg = null;
+                    String targetLabel = null;
+                    java.util.List<ApplicationInfo> apps = pm.getInstalledApplications(0);
+                    for (ApplicationInfo ai : apps) {
+                        CharSequence cs = pm.getApplicationLabel(ai);
+                        String label = cs == null ? "" : cs.toString();
+                        String hay = (label + " " + (ai.packageName == null ? "" : ai.packageName)).toLowerCase();
+                        for (String n : needles) {
+                            if (hay.contains(n.toLowerCase())) {
+                                targetPkg = ai.packageName;
+                                targetLabel = label;
+                                break;
+                            }
+                        }
+                        if (targetPkg != null) break;
+                    }
+                    if (targetPkg == null) return "missing";
+                    final Intent intent = pm.getLaunchIntentForPackage(targetPkg);
+                    if (intent == null) return "missing";
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    Log.i(TAG, "launch tag app: " + targetPkg);
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override public void run() {
+                            try {
+                                startActivity(intent);
+                            } catch (Exception e) {
+                                Log.w(TAG, "launch tag app failed", e);
+                            }
+                        }
+                    });
+                    return targetPkg + "|" + (targetLabel == null || targetLabel.length() == 0 ? targetPkg : targetLabel);
+                } catch (Exception e) {
+                    return "error:" + e.getMessage();
+                }
             }
         }, "SaltWaveNative");
 
