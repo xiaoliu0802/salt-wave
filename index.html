@@ -3057,7 +3057,6 @@ const Player = {
             artist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M5 21c1.6-4 4-6 7-6s5.4 2 7 6"/></svg>',
             album: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/></svg>',
             info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.6" r="1"/></svg>',
-            tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>',
             repeat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
             remove: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 20 7"/><path d="M7 7v13h10V7"/><path d="M10 4h4"/></svg>'
         };
@@ -3090,7 +3089,6 @@ const Player = {
                 ${row('share', ico.share, '分享')}
                 ${row('artist', ico.artist, '艺术家', song.artist || '')}
                 ${row('album', ico.album, '专辑', song.album || '')}
-                ${row('tag', ico.tag, '用音乐标签编辑')}
                 ${row('repeat', ico.repeat, '播放模式', this.repeatLabel())}
                 ${row('info', ico.info, '歌曲信息')}
                 ${this.queue.length > 1 ? row('remove', ico.remove, '从播放队列移除') : ''}
@@ -3141,11 +3139,6 @@ const Player = {
             this.closeSongActions();
             if (song.albumId) App.openAlbum(song.albumId);
             else showToast('这首歌没有关联专辑信息');
-            return;
-        }
-        if (act === 'tag') {
-            this.closeSongActions();
-            this.openTagApp();
             return;
         }
         if (act === 'repeat') {
@@ -3398,23 +3391,6 @@ const Player = {
 
     stopSpectrum() {
         if (this._specRaf) { cancelAnimationFrame(this._specRaf); this._specRaf = null; }
-    },
-
-    // 打开手机里的「音乐标签」App（原生 Intent）
-    openTagApp() {
-        const n = window.SaltWaveNative;
-        if (!n || typeof n.openTagApp !== 'function') {
-            showToast('只有 Android 版能直接打开音乐标签');
-            return;
-        }
-        try {
-            const r = String(n.openTagApp() || '');
-            if (r === 'missing') showToast('没找到「音乐标签」应用，请先安装');
-            else if (r.indexOf('error') === 0) showToast('打开失败：' + r.slice(6));
-            else if (r) showToast('已打开音乐标签 · ' + r.split('|')[1]);
-        } catch (e) {
-            showToast('打开音乐标签失败');
-        }
     },
 
     updateProgress() {
@@ -4568,7 +4544,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.10')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.11')}
                 `)}
             </div>
         `;
