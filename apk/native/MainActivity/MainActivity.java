@@ -96,8 +96,26 @@ public class MainActivity extends CordovaActivity
         getWindow().setNavigationBarColor(Color.parseColor("#0f0f1e"));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        // Cordova 15 依赖 loadUrl() 里的惰性 init()，此时 appView 可能还没创建。
+        // 先确保 WebView 已经初始化（init() 由 loadUrl 内部复用，不会重复创建）。
+        if (appView == null) {
+            init();
+        }
+        if (appView == null) {
+            throw new IllegalStateException("Cordova WebView 未初始化（appView 仍为空）");
+        }
+
         // 拿到 Cordova 内部的 WebView，调整设置以绕过 CORS
-        appWebView = (WebView) appView.getEngine().getView();
+        try {
+            appWebView = (WebView) appView.getEngine().getView();
+        } catch (Throwable ignore) { /* 引擎取法不同时走下面的兜底 */ }
+        if (appWebView == null) {
+            View v = appView.getView();
+            if (v instanceof WebView) appWebView = (WebView) v;
+        }
+        if (appWebView == null) {
+            throw new IllegalStateException("取不到 Cordova WebView 实例");
+        }
 
         WebSettings settings = appWebView.getSettings();
         settings.setJavaScriptEnabled(true);
