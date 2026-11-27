@@ -359,9 +359,9 @@
         /* ===== 歌曲列表 ===== */
         .song-list-header {
             display: grid;
-            grid-template-columns: 40px 1fr 200px 120px 60px;
+            grid-template-columns: 30px 44px 1fr 76px 36px;
             gap: 12px;
-            padding: 8px 16px;
+            padding: 8px 12px;
             color: var(--text-muted);
             font-size: 12px;
             border-bottom: 1px solid var(--border);
@@ -369,19 +369,25 @@
         }
         .song-item {
             display: grid;
-            grid-template-columns: 40px 1fr 200px 120px 60px;
+            grid-template-columns: 30px 44px 1fr 76px 36px;
             gap: 12px;
-            padding: 8px 16px;
+            padding: 8px 12px;
             border-radius: var(--radius-sm);
             align-items: center;
             transition: background .15s;
         }
+        .song-cover {
+            width: 44px; height: 44px; border-radius: 9px; overflow: hidden;
+            background: var(--bg-elevated); color: var(--text-muted);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .song-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .song-cover svg { width: 18px; height: 18px; }
         .song-item:hover { background: var(--bg-card-hover); }
         .song-item.playing { background: var(--bg-elevated); }
         .song-item.playing .song-index { color: var(--accent-light); }
         .song-index { font-size: 13px; color: var(--text-muted); text-align: center; }
-        .song-item:hover .song-index { display: none; }
-        .song-item:hover .song-play-btn { display: flex; }
         .song-play-btn { display: none; align-items: center; justify-content: center; color: var(--text); }
         .song-play-btn svg { width: 16px; height: 16px; }
         .song-info { min-width: 0; }
@@ -750,12 +756,21 @@
             padding-bottom: var(--sbn);
         }
         .lyrics-panel-header {
+            position: relative;
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
             gap: 12px;
             flex-shrink: 0;
-            padding: 14px 10px 2px 20px;
+            padding: 18px 20px 2px 20px;
+        }
+        /* 下滑退出的拖拽提示条 */
+        .lyrics-panel-header::before {
+            content: '';
+            position: absolute;
+            top: 3px; left: 50%; transform: translateX(-50%);
+            width: 44px; height: 4px; border-radius: 2px;
+            background: rgba(255,255,255,.26);
         }
         .lyrics-head { min-width: 0; }
         .lyrics-title {
@@ -1200,10 +1215,11 @@
             .artist-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 16px; }
             .song-list-header { display: none; }
             .song-item {
-                grid-template-columns: 40px 1fr 50px;
-                gap: 8px;
+                grid-template-columns: 44px 1fr 52px;
+                gap: 12px;
+                padding: 8px 4px;
             }
-            .song-album { display: none; }
+            .song-index { display: none; }
             .song-actions { display: none; }
             .player-bar { gap: 8px; padding: 0 10px; }
             .player-current { width: 160px; }
@@ -1701,9 +1717,6 @@
                 <div class="lyrics-title" id="lyrics-title"></div>
                 <div class="lyrics-artist" id="lyrics-artist"></div>
             </div>
-            <button class="lyrics-close-btn" onclick="Player.closeLyricsPanel()" title="收起歌词">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="4 8 12 16 20 8"/></svg>
-            </button>
         </div>
         <div class="lyrics-panel-content" id="lyrics-panel-content">
             <div class="lyrics-empty">点击歌曲开始播放后显示歌词</div>
@@ -2308,6 +2321,7 @@ const Player = {
         this.audio.addEventListener('pause', () => { this.isPlaying = false; this.updatePlayBtn(); });
         this.audio.addEventListener('error', () => { console.error('Audio error'); this.next(); });
         this.initLyricsTap();
+        this.initLyricsSwipe();
         LyricsStyle.load();
         this.applySettings();
 
@@ -2339,6 +2353,65 @@ const Player = {
         });
     },
 
+    // 歌词页下滑退出（右上角收起按钮已移除）
+    initLyricsSwipe() {
+        const overlay = document.getElementById('lyrics-overlay');
+        if (!overlay || this._lyricsSwipeBound) return;
+        this._lyricsSwipeBound = true;
+        let startY = 0, startX = 0, tracking = false, dragging = false;
+
+        const restore = (animate) => {
+            overlay.style.transition = animate
+                ? 'transform .3s cubic-bezier(.22,.61,.36,1), opacity .22s ease'
+                : '';
+            overlay.style.transform = '';
+            overlay.style.opacity = '';
+            if (animate) setTimeout(() => { overlay.style.transition = ''; }, 320);
+        };
+
+        overlay.addEventListener('touchstart', (e) => {
+            if (e.touches.length !== 1) return;
+            startY = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+            tracking = true;
+            dragging = false;
+        }, { passive: true });
+
+        overlay.addEventListener('touchmove', (e) => {
+            if (!tracking) return;
+            const dy = e.touches[0].clientY - startY;
+            const dx = Math.abs(e.touches[0].clientX - startX);
+            if (!dragging && dy > 26 && dy > dx * 1.2) {
+                dragging = true;
+                overlay.style.transition = 'none';
+            }
+            if (dragging) {
+                const d = Math.max(0, dy);
+                overlay.style.transform = `translateY(${d}px)`;
+                overlay.style.opacity = String(Math.max(0.3, 1 - d / 480));
+            }
+        }, { passive: true });
+
+        const finish = (e) => {
+            if (!tracking) return;
+            tracking = false;
+            const dy = e.changedTouches[0].clientY - startY;
+            const dx = Math.abs(e.changedTouches[0].clientX - startX);
+            if (!dragging) return;
+            dragging = false;
+            if (dy > 110 && dy > dx) {
+                overlay.style.transition = '';
+                overlay.style.transform = '';
+                overlay.style.opacity = '';
+                Player.closeLyricsPanel();
+            } else {
+                restore(true);
+            }
+        };
+        overlay.addEventListener('touchend', finish, { passive: true });
+        overlay.addEventListener('touchcancel', finish, { passive: true });
+    },
+
     // 设置项生效：音量平衡 / Mini 歌词
     applySettings() {
         this.enableVolumeBalance(!!Settings.get('volumeBalance'));
@@ -2357,8 +2430,11 @@ const Player = {
             if (!AC) return;
             this.ctx = new AC();
             this.srcNode = this.ctx.createMediaElementSource(this.audio);
+            this.gainNode = this.ctx.createGain();
+            this.gainNode.gain.value = 1;
             this.compNode = this.ctx.createDynamicsCompressor();
-            this.srcNode.connect(this.compNode);
+            this.srcNode.connect(this.gainNode);
+            this.gainNode.connect(this.compNode);
             this.compNode.connect(this.ctx.destination);
             this._graphOk = true;
         } catch (e) {
@@ -2398,11 +2474,25 @@ const Player = {
 
     fadeIn() {
         const target = this.volume || 0.7;
+        if (this._fadeTimer) { clearInterval(this._fadeTimer); this._fadeTimer = null; }
         if (!Settings.get('crossfade')) {
             this.audio.volume = target;
+            if (this.gainNode) this.gainNode.gain.value = 1;
             return;
         }
-        if (this._fadeTimer) { clearInterval(this._fadeTimer); this._fadeTimer = null; }
+        // 有 Web Audio 通路时直接推 gain（此时 audio.volume 可能不生效）
+        if (this._graphOk && this.gainNode && this.ctx) {
+            try {
+                this.audio.volume = target;
+                this.ctx.resume().catch(() => {});
+                const now = this.ctx.currentTime;
+                const g = this.gainNode.gain;
+                g.cancelScheduledValues(now);
+                g.setValueAtTime(0, now);
+                g.linearRampToValueAtTime(1, now + 1.2);
+                return;
+            } catch (e) { /* 退回 volume 方案 */ }
+        }
         const durMs = 1200;
         const t0 = performance.now();
         this.audio.volume = 0;
@@ -2422,6 +2512,16 @@ const Player = {
             this._fadingOut = true;
             const startVol = this.audio.volume;
             const durMs = 1100;
+            if (this._graphOk && this.gainNode && this.ctx) {
+                try {
+                    const now = this.ctx.currentTime;
+                    const g = this.gainNode.gain;
+                    g.cancelScheduledValues(now);
+                    g.setValueAtTime(g.value, now);
+                    g.linearRampToValueAtTime(0, now + durMs / 1000);
+                    return;
+                } catch (e) { /* 退回 volume 方案 */ }
+            }
             const t0 = performance.now();
             const timer = setInterval(() => {
                 const p = Math.min(1, (performance.now() - t0) / durMs);
@@ -3122,15 +3222,16 @@ const App = {
         const content = document.getElementById('page-content');
         content.innerHTML = '<div class="home" style="padding-top:110px;"><div class="loading" style="color:#7a7a80;"><div class="spinner"></div>加载中...</div></div>';
 
-        let albums = [], playlists = [], artists = [], genres = [], starred = [], recent = [];
+        let albums = [], playlists = [], artists = [], genres = [], starred = [], recent = [], randoms = [];
         try {
-            [albums, playlists, artists, genres, starred, recent] = await Promise.all([
+            [albums, playlists, artists, genres, starred, recent, randoms] = await Promise.all([
                 SubsonicAPI.getAllAlbums().catch(() => []),
                 SubsonicAPI.getPlaylists().catch(() => []),
                 SubsonicAPI.getArtists().catch(() => []),
                 SubsonicAPI.getGenres().catch(() => []),
                 SubsonicAPI.getStarred2().catch(() => []),
-                SubsonicAPI.getAlbumList('newest', 6).catch(() => [])
+                SubsonicAPI.getAlbumList('newest', 6).catch(() => []),
+                SubsonicAPI.getRandomSongs(40).catch(() => [])
             ]);
         } catch (e) { /* 单项失败不影响整体 */ }
 
@@ -3153,11 +3254,32 @@ const App = {
         };
 
         const songCount = albums.reduce((n, a) => n + (Number(a.songCount) || 0), 0);
-        const featuredPool = recent.length ? recent : albums;
-        const featured = featuredPool.length
-            ? featuredPool[(this.homeSeed || 0) % featuredPool.length]
-            : null;
-        const featuredCover = featured ? SubsonicAPI.getCoverArtUrl(featured.coverArt, 600) : '';
+
+        // 精选推荐：每次随机取一首歌（避开上一次推荐的同一首），刷新即换
+        let featured = null;
+        if (randoms.length) {
+            const prevId = this.featuredSongId;
+            const pool = randoms.filter((s) => s && s.id !== prevId);
+            const source = pool.length ? pool : randoms;
+            const pick = source[Math.floor(Math.random() * source.length)];
+            if (pick) {
+                featured = {
+                    title: pick.title || '未知',
+                    artist: pick.artist || '',
+                    album: pick.album || '',
+                    coverArt: pick.coverArt || pick.id
+                };
+                this.featuredSongId = pick.id;
+                this.featuredSong = pick;
+            }
+        }
+        if (!featured) {
+            const fallbackPool = recent.length ? recent : albums;
+            const a = fallbackPool.length ? fallbackPool[Math.floor(Math.random() * fallbackPool.length)] : null;
+            if (a) featured = { title: a.name || '未知专辑', artist: a.artist || '', album: '', coverArt: a.coverArt };
+        }
+        const featuredCover = featured && featured.coverArt ? SubsonicAPI.getCoverArtUrl(featured.coverArt, 600) : '';
+        this.homeRandoms = randoms;
         const userName = SubsonicAPI.username || 'Salt Wave';
 
         const cards = [
@@ -3209,10 +3331,10 @@ const App = {
                     </div>
                     <div class="home-feature-info">
                         <span class="home-chip">精选推荐</span>
-                        <div class="home-feature-title">${escapeHtml(featured ? (featured.name || '未知专辑') : '暂无推荐')}</div>
+                        <div class="home-feature-title">${escapeHtml(featured ? (featured.title || '暂无推荐') : '暂无推荐')}</div>
                         <div class="home-feature-artist">${escapeHtml(featured ? (featured.artist || '') : '连接 Navidrome 后显示')}</div>
                         <div class="home-feature-actions">
-                            <button class="home-play-btn" onclick="App.playRandom()">
+                            <button class="home-play-btn" onclick="App.playFeatured()">
                                 <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>随手听听
                             </button>
                             <button class="home-cast-btn${this.serviceOnline === false ? ' offline' : ''}" onclick="App.showServiceStatus()" title="音乐库状态">
@@ -3264,6 +3386,24 @@ const App = {
         this.homeSeed = (this.homeSeed || 0) + 1;
         if (typeof showToast === 'function') showToast('已更新精选推荐');
         this.renderHome();
+    },
+
+    // 播放当前精选推荐的歌曲，后面接随机队列
+    playFeatured() {
+        const song = this.featuredSong;
+        if (!song) {
+            this.playRandom();
+            return;
+        }
+        const norm = (s) => ({
+            id: s.id, title: s.title, artist: s.artist, album: s.album,
+            coverArt: s.coverArt, duration: s.duration
+        });
+        const queue = [norm(song)];
+        (this.homeRandoms || []).forEach((s) => {
+            if (s && s.id !== song.id && queue.length < 30) queue.push(norm(s));
+        });
+        Player.playQueue(queue, 0);
     },
 
     // 首页 WiFi 图标的在线状态（绿=在线，灰=离线）
@@ -3759,7 +3899,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.6')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.7')}
                 `)}
             </div>
         `;
@@ -3818,26 +3958,30 @@ const App = {
         this.songLists = this.songLists || {};
         const key = listId || ('list_' + (++this._listSeq));
         this.songLists[key] = songs;
-        const header = `<div class="song-list-header"><div>#</div><div>标题</div><div>专辑</div><div>时长</div><div></div></div>`;
-        const items = songs.map((s, i) => `
+        const header = `<div class="song-list-header"><div>#</div><div style="grid-column:2 / 4;">歌曲</div><div style="text-align:right;">时长</div><div></div></div>`;
+        const items = songs.map((s, i) => {
+            const artId = s.coverArt || s.id;
+            const sub = [s.artist, s.album].filter(Boolean).join(' · ');
+            return `
             <div class="song-item" data-song-id="${s.id}" onclick="App.playList('${key}', ${i})">
                 <div class="song-index">${i + 1}</div>
-                <div class="song-play-btn" onclick="event.stopPropagation();App.playList('${key}', ${i})">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <div class="song-cover">
+                    ${artId
+                        ? `<img src="${SubsonicAPI.getCoverArtUrl(artId, 120)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+                        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>`}
                 </div>
                 <div class="song-info">
                     <div class="song-title">${escapeHtml(s.title || '未知')}</div>
-                    <div class="song-artist">${escapeHtml(s.artist || '')}</div>
+                    <div class="song-artist">${escapeHtml(sub)}</div>
                 </div>
-                <div class="song-album">${escapeHtml(s.album || '')}</div>
                 <div class="song-duration">${formatTime(s.duration)}</div>
                 <div class="song-actions">
                     <button class="song-action-btn" onclick="event.stopPropagation();App.addToQueueFrom('${key}', ${i})" title="加入队列">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
         return header + items;
     },
 
