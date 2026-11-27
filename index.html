@@ -28,6 +28,9 @@
             --sidebar-width: 240px;
             --danger: #e74c3c;
             --success: #2ecc71;
+            /* 系统栏高度（由原生按真实 insets 注入，网页端为 0） */
+            --sbh: 0px;
+            --sbn: 0px;
         }
 
         /* ===== Reset ===== */
@@ -219,7 +222,7 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
-            padding: 12px 24px;
+            padding: calc(12px + var(--sbh)) 24px 12px;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -412,12 +415,12 @@
 
         /* ===== 播放器底栏 ===== */
         .player-bar {
-            height: var(--player-height);
+            height: calc(var(--player-height) + var(--sbn));
             background: var(--bg-card);
             border-top: 1px solid var(--border);
             display: flex;
             align-items: center;
-            padding: 0 20px;
+            padding: 0 20px var(--sbn);
             gap: 16px;
             flex-shrink: 0;
         }
@@ -743,8 +746,8 @@
             border-radius: 0;
             display: flex;
             flex-direction: column;
-            padding-top: env(safe-area-inset-top, 0px);
-            padding-bottom: env(safe-area-inset-bottom, 0px);
+            padding-top: var(--sbh);
+            padding-bottom: var(--sbn);
         }
         .lyrics-panel-header {
             display: flex;
@@ -788,7 +791,7 @@
         /* 歌词页底部：进度 + 上一首/播放/下一首 + 随机/循环 */
         .lyrics-footer {
             flex-shrink: 0;
-            padding: 8px 20px calc(8px + env(safe-area-inset-bottom, 0px));
+            padding: 8px 20px calc(8px + var(--sbn));
         }
         .lc-label {
             display: inline-flex;
@@ -1210,7 +1213,7 @@
             .album-detail-cover { width: 160px; height: 160px; }
             .album-detail-name { font-size: 24px; }
             .page-content { padding: 16px; }
-            .top-bar { padding: 10px 16px; }
+            .top-bar { padding: calc(10px + var(--sbh)) 16px 10px; }
             .progress-track { height: 6px; }
         }
 
@@ -1246,7 +1249,8 @@
             backdrop-filter: blur(22px);
             -webkit-backdrop-filter: blur(22px);
             border-top: none;
-            margin: 0 10px 10px;
+            height: var(--player-height);
+            margin: 0 10px calc(10px + var(--sbn));
             border-radius: 22px;
             box-shadow: 0 10px 30px rgba(0,0,0,.12);
             color: #1b1b1d;
@@ -1285,7 +1289,7 @@
             display: flex; align-items: center; gap: 12px;
             justify-content: center;
             position: relative;
-            padding: max(14px, env(safe-area-inset-top)) 0 6px;
+            padding: calc(14px + var(--sbh)) 0 6px;
         }
         .home-circle {
             width: 48px; height: 48px; border-radius: 50%;
@@ -1301,7 +1305,7 @@
         .home-circle svg { width: 22px; height: 22px; }
         .home-circle:last-child {
             position: absolute; right: 0;
-            top: max(14px, env(safe-area-inset-top));
+            top: calc(14px + var(--sbh));
             margin-left: 0;
         }
         .home-head .home-name {
@@ -1317,13 +1321,13 @@
         /* ===== 设置页 ===== */
         #app.settings-mode .page-content { overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
         .settings-page {
-            padding-bottom: calc(30px + env(safe-area-inset-bottom));
+            padding-bottom: calc(30px + var(--sbn));
             color: #1b1b1d;
         }
         .settings-top {
             position: relative;
             display: flex; align-items: center; justify-content: center;
-            padding: max(14px, env(safe-area-inset-top)) 16px 10px;
+            padding: calc(14px + var(--sbh)) 16px 10px;
         }
         .settings-back {
             position: absolute; left: 14px;
@@ -1412,9 +1416,10 @@
         .home-feature-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
         .home-play-btn {
             display: flex; align-items: center; gap: 8px;
-            padding: 12px 22px; border-radius: 999px;
+            padding: 12px 18px; border-radius: 999px;
             background: #1b1b1d; color: #fff; font-size: 15px; font-weight: 600;
             box-shadow: 0 10px 24px rgba(0,0,0,.22);
+            white-space: nowrap; flex-shrink: 0;
         }
         .home-play-btn svg { width: 18px; height: 18px; }
         .home-cast-btn {
@@ -1422,8 +1427,89 @@
             background: rgba(255,255,255,.86); color: #2fb457;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 8px 20px rgba(0,0,0,.08);
+            flex-shrink: 0;
         }
         .home-cast-btn svg { width: 20px; height: 20px; }
+        .home-cast-btn.offline { color: #a7a7ae; }
+
+        /* ===== 服务状态弹窗 ===== */
+        .svc-overlay {
+            position: fixed; inset: 0; z-index: 320;
+            background: rgba(0,0,0,.45);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 24px;
+        }
+        .svc-card {
+            width: 100%; max-width: 380px;
+            border-radius: 22px; padding: 20px 20px 14px;
+            background: rgba(40,40,44,.95);
+            box-shadow: 0 24px 60px rgba(0,0,0,.5);
+            color: #f4f4f6;
+        }
+        .svc-title { font-size: 19px; font-weight: 700; margin-bottom: 12px; }
+        .svc-row { font-size: 15px; line-height: 1.85; color: #dcdce0; word-break: break-all; }
+        .svc-row b { color: #fff; font-weight: 700; }
+        .svc-on { color: #35d07f; font-weight: 600; }
+        .svc-off { color: #ff6b6b; font-weight: 600; }
+        .svc-btn {
+            width: 100%; margin-top: 16px; padding: 13px;
+            border-radius: 14px; background: rgba(255,255,255,.92);
+            color: #17171a; font-size: 16px; font-weight: 600;
+        }
+
+        /* ===== 播放列表页（重设计） ===== */
+        #app.playlists-mode .top-bar { display: none; }
+        #app.playlists-mode .page-content { padding: 0 18px 30px; }
+        .pl-page { padding-top: calc(8px + var(--sbh)); }
+        .pl-top { position: relative; display: flex; align-items: center; justify-content: space-between; height: 46px; }
+        .pl-back {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+            display: flex; align-items: center; justify-content: center; color: var(--text);
+        }
+        .pl-back svg { width: 20px; height: 20px; }
+        .pl-new {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 14px; border-radius: 999px;
+            background: rgba(108,92,231,.18); color: #bdb6ff;
+            font-size: 14px; font-weight: 600;
+        }
+        .pl-new svg { width: 16px; height: 16px; }
+        .pl-title { font-size: 32px; font-weight: 800; letter-spacing: -.5px; margin: 14px 0 4px; }
+        .pl-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+        .pl-list { margin-top: 4px; }
+        .pl-row {
+            display: flex; align-items: center; gap: 16px;
+            padding: 14px 2px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+            width: 100%; text-align: left;
+        }
+        .pl-row:last-child { border-bottom: none; }
+        .pl-row:active { background: rgba(255,255,255,.04); }
+        .pl-cover { position: relative; width: 64px; height: 64px; flex: 0 0 64px; }
+        .pl-cover .pl-layer {
+            position: absolute; inset: 0; border-radius: 14px; overflow: hidden;
+            background: linear-gradient(135deg,#2b2b4d,#1c1c32);
+            box-shadow: 0 6px 16px rgba(0,0,0,.3);
+        }
+        .pl-cover .pl-layer img { width: 100%; height: 100%; object-fit: cover; }
+        .pl-cover .l1 { transform: translate(7px, -6px) scale(.9); opacity: .45; filter: brightness(.8); }
+        .pl-cover .l2 { transform: translate(3px, -3px) scale(.95); opacity: .7; }
+        .pl-cover .pl-collage { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .pl-cover .pl-icon-wrap { display: flex; align-items: center; justify-content: center; color: #8f8ab8; }
+        .pl-cover .pl-icon-wrap svg { width: 26px; height: 26px; }
+        .pl-info { flex: 1; min-width: 0; }
+        .pl-name { font-size: 18px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pl-meta { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+        .pl-chev { color: var(--text-muted); flex-shrink: 0; display: flex; align-items: center; }
+        .pl-chev svg { width: 18px; height: 18px; }
+        .pl-danger {
+            padding: 8px 14px; border-radius: 999px;
+            background: rgba(231,76,60,.14); color: #ff8b7e;
+            font-size: 13px; font-weight: 600;
+        }
+
 
         .home-sec-head { display: flex; align-items: center; gap: 10px; }
         .home-sec-title { font-size: 24px; font-weight: 800; color: #17171a; display: flex; align-items: center; gap: 10px; }
@@ -2916,6 +3002,8 @@ const App = {
     songLists: {},
     _listSeq: 0,
     searchTimer: null,
+    homeSeed: 0,
+    serviceOnline: null,
 
     async login() {
         const serverUrlRaw = document.getElementById('server-url').value.trim();
@@ -2991,6 +3079,7 @@ const App = {
 
     navigate(view) {
         this.currentView = view;
+        this.detailParent = null;
         this.songLists = {};
         this.navStack = this.navStack || [];
         if (this.navStack[this.navStack.length - 1] !== view) {
@@ -3003,6 +3092,7 @@ const App = {
         const lightView = (view === 'home' || view === 'settings');
         document.getElementById('app').classList.toggle('home-mode', lightView);
         document.getElementById('app').classList.toggle('settings-mode', view === 'settings');
+        document.getElementById('app').classList.toggle('playlists-mode', view === 'playlists');
         this.applyShellTheme(lightView);
         const content = document.getElementById('page-content');
 
@@ -3063,7 +3153,10 @@ const App = {
         };
 
         const songCount = albums.reduce((n, a) => n + (Number(a.songCount) || 0), 0);
-        const featured = recent[0] || albums[0] || null;
+        const featuredPool = recent.length ? recent : albums;
+        const featured = featuredPool.length
+            ? featuredPool[(this.homeSeed || 0) % featuredPool.length]
+            : null;
         const featuredCover = featured ? SubsonicAPI.getCoverArtUrl(featured.coverArt, 600) : '';
         const userName = SubsonicAPI.username || 'Salt Wave';
 
@@ -3122,8 +3215,8 @@ const App = {
                             <button class="home-play-btn" onclick="App.playRandom()">
                                 <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>随手听听
                             </button>
-                            <button class="home-cast-btn" onclick="QueuePanel.open()" title="播放列表">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12a10 10 0 0 1 20 0"/><circle cx="12" cy="12" r="2"/><path d="M5.5 16a7 7 0 0 0 13 0"/></svg>
+                            <button class="home-cast-btn${this.serviceOnline === false ? ' offline' : ''}" onclick="App.showServiceStatus()" title="音乐库状态">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1.6 8.9a16 16 0 0 1 20.8 0"/><path d="M5 12.5a11 11 0 0 1 14 0"/><path d="M8.4 16.1a6 6 0 0 1 7.2 0"/><circle cx="12" cy="20" r="1.1" fill="currentColor" stroke="none"/></svg>
                             </button>
                         </div>
                     </div>
@@ -3134,7 +3227,7 @@ const App = {
                         <div class="home-sec-title">
                             <svg viewBox="0 0 24 24" fill="none" stroke="#f0743e" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>音乐库
                         </div>
-                        <button class="home-refresh" onclick="App.renderHome()" title="刷新">
+                        <button class="home-refresh" onclick="App.refreshHome()" title="刷新">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg>
                         </button>
                     </div>
@@ -3150,7 +3243,7 @@ const App = {
                         <button class="home-more" onclick="App.navigate('starred')">更多
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 6 15 12 9 18"/></svg>
                         </button>
-                        <button class="home-refresh" onclick="App.renderHome()" title="刷新">
+                        <button class="home-refresh" onclick="App.refreshHome()" title="刷新">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg>
                         </button>
                     </div>
@@ -3163,6 +3256,65 @@ const App = {
                 </button>
             </div>
         `;
+        this.refreshServiceBadge();
+    },
+
+    // 刷新首页：重新拉数据并换一首精选推荐
+    refreshHome() {
+        this.homeSeed = (this.homeSeed || 0) + 1;
+        if (typeof showToast === 'function') showToast('已更新精选推荐');
+        this.renderHome();
+    },
+
+    // 首页 WiFi 图标的在线状态（绿=在线，灰=离线）
+    async refreshServiceBadge() {
+        try {
+            await SubsonicAPI.ping();
+            this.serviceOnline = true;
+        } catch (e) {
+            this.serviceOnline = false;
+        }
+        const btn = document.querySelector('.home-cast-btn');
+        if (btn) btn.classList.toggle('offline', this.serviceOnline === false);
+    },
+
+    // 音乐库（Navidrome）服务状态弹窗
+    showServiceStatus() {
+        if (document.getElementById('svc-overlay')) return;
+        const serverName = SubsonicAPI.username || 'Navidrome';
+        const addr = SubsonicAPI.serverUrl || '';
+        const ov = document.createElement('div');
+        ov.className = 'svc-overlay';
+        ov.id = 'svc-overlay';
+        ov.innerHTML = `
+            <div class="svc-card">
+                <div class="svc-title">Navidrome 服务状态</div>
+                <div class="svc-row">名称: <b>${escapeHtml(serverName)}</b></div>
+                <div class="svc-row">地址: <b>${escapeHtml(addr)}</b></div>
+                <div class="svc-row">用户: <b>${escapeHtml(serverName)}</b></div>
+                <div class="svc-row">状态: <span id="svc-status" class="svc-on">在线</span></div>
+                <button class="svc-btn" onclick="App.closeServiceStatus()">确定</button>
+            </div>`;
+        ov.addEventListener('click', (ev) => {
+            if (ev.target === ov) App.closeServiceStatus();
+        });
+        document.body.appendChild(ov);
+
+        // 异步探测一次，避免弹窗里的状态是假的
+        SubsonicAPI.ping().then(() => {
+            const el = document.getElementById('svc-status');
+            if (el) { el.className = 'svc-on'; el.textContent = '在线'; }
+            App.serviceOnline = true;
+        }).catch((e) => {
+            const el = document.getElementById('svc-status');
+            if (el) { el.className = 'svc-off'; el.textContent = '离线 · ' + (e.message || '无法连接'); }
+            App.serviceOnline = false;
+        });
+    },
+
+    closeServiceStatus() {
+        const ov = document.getElementById('svc-overlay');
+        if (ov) ov.remove();
     },
 
     async renderStarred() {
@@ -3301,39 +3453,91 @@ const App = {
         try {
             const playlists = await SubsonicAPI.getPlaylists();
             this.cache.playlists = playlists;
+
+            const chevron = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>`;
+            const plIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`;
+
             content.innerHTML = `
-                <h1 class="page-title">歌单</h1>
-                <div style="margin-bottom:20px;">
-                    <button class="album-play-all" onclick="App.openPlaylistModal()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        新建歌单
-                    </button>
-                </div>
-                <div class="playlist-grid" id="playlists-grid"></div>
-            `;
-            const grid = document.getElementById('playlists-grid');
-            if (playlists.length === 0) {
-                grid.innerHTML = this.emptyState('暂无歌单，点击上方按钮创建');
-            } else {
-                grid.innerHTML = playlists.map(p => `
-                    <div class="playlist-card" onclick="App.openPlaylist('${p.id}')">
-                        <div class="playlist-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        </div>
-                        <div class="playlist-name">${escapeHtml(p.name)}</div>
-                        <div class="playlist-count">${p.songCount || 0} 首</div>
-                        <div class="playlist-actions">
-                            <button class="playlist-action-btn danger" onclick="event.stopPropagation();App.deletePlaylist('${p.id}','${escapeHtml(p.name)}')">删除</button>
-                        </div>
+                <div class="pl-page">
+                    <div class="pl-top">
+                        <button class="pl-back" onclick="App.navBack()" title="返回">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 6 9 12 15 18"/></svg>
+                        </button>
+                        <button class="pl-new" onclick="App.openPlaylistModal()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            新建歌单
+                        </button>
                     </div>
-                `).join('');
+                    <h1 class="pl-title">播放列表</h1>
+                    <div class="pl-sub">共 ${playlists.length} 个歌单</div>
+                    <div class="pl-list" id="pl-list"></div>
+                </div>
+            `;
+
+            const list = document.getElementById('pl-list');
+            if (playlists.length === 0) {
+                list.innerHTML = this.emptyState('暂无歌单，点右上角新建');
+                return;
             }
+
+            list.innerHTML = playlists.map((p, i) => `
+                <button class="pl-row" onclick="App.openPlaylist('${p.id}')">
+                    <div class="pl-cover" id="pl-cover-${i}">
+                        <div class="pl-layer l1"></div>
+                        <div class="pl-layer l2"></div>
+                        <div class="pl-layer"><div class="pl-icon-wrap">${plIcon}</div></div>
+                    </div>
+                    <div class="pl-info">
+                        <div class="pl-name">${escapeHtml(p.name || '未命名歌单')}</div>
+                        <div class="pl-meta" id="pl-meta-${i}">${p.songCount || 0} 歌曲</div>
+                    </div>
+                    <div class="pl-chev">${chevron}</div>
+                </button>
+            `).join('');
+
+            // 逐个补齐封面拼贴与总时长（只取前 12 个，避免歌单很多时请求过多）
+            playlists.slice(0, 12).forEach((p, i) => this.loadPlaylistMeta(p.id, i));
         } catch (e) {
             content.innerHTML = this.emptyState('加载失败：' + e.message);
         }
     },
 
+    async loadPlaylistMeta(id, index) {
+        try {
+            const detail = await SubsonicAPI.getPlaylist(id);
+            const songs = detail.entry || [];
+            const total = songs.reduce((n, s) => n + (Number(s.duration) || 0), 0);
+            const meta = document.getElementById('pl-meta-' + index);
+            if (meta) meta.textContent = `${songs.length} 歌曲，${this.formatDuration(total)}`;
+
+            const covers = [];
+            songs.forEach((s) => {
+                const c = s.coverArt;
+                if (c && covers.indexOf(c) === -1 && covers.length < 4) covers.push(c);
+            });
+            const coverEl = document.getElementById('pl-cover-' + index);
+            if (coverEl && covers.length) {
+                coverEl.innerHTML = `
+                    <div class="pl-layer l1"></div>
+                    <div class="pl-layer l2"></div>
+                    <div class="pl-layer pl-collage">${covers.map(c => `<img src="${SubsonicAPI.getCoverArtUrl(c, 200)}" alt="">`).join('')}</div>
+                `;
+            }
+        } catch (e) { /* 单个歌单取不到不影响列表 */ }
+    },
+
+    formatDuration(sec) {
+        const total = Math.max(0, Math.round(Number(sec) || 0));
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        if (h > 0) return `${h}小时 ${m}分钟 ${s}秒`;
+        if (m > 0) return `${m}分钟 ${s}秒`;
+        return `${s}秒`;
+    },
+
     async openAlbum(id) {
+        this.detailParent = 'albums';
         const content = document.getElementById('page-content');
         content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
         try {
@@ -3368,24 +3572,30 @@ const App = {
     },
 
     async openPlaylist(id) {
+        this.detailParent = 'playlists';
         const content = document.getElementById('page-content');
         content.innerHTML = '<div class="loading"><div class="spinner"></div>加载中...</div>';
         try {
             const playlist = await SubsonicAPI.getPlaylist(id);
             const songs = playlist.entry || [];
+            const total = songs.reduce((n, s) => n + (Number(s.duration) || 0), 0);
+            const name = playlist.name || '歌单';
             content.innerHTML = `
-                <div style="margin-bottom:16px;">
-                    <button class="ctrl-btn" onclick="App.navigate('playlists')" style="font-size:14px;display:inline-flex;align-items:center;gap:4px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-                        返回
-                    </button>
+                <div class="pl-page">
+                    <div class="pl-top">
+                        <button class="pl-back" onclick="App.navigate('playlists')" title="返回">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 6 9 12 15 18"/></svg>
+                        </button>
+                        <button class="pl-danger" onclick="App.deletePlaylist('${playlist.id}','${escapeHtml(name).replace(/'/g,"&#39;")}')">删除歌单</button>
+                    </div>
+                    <h1 class="pl-title">${escapeHtml(name)}</h1>
+                    <div class="pl-sub">${songs.length} 歌曲，${this.formatDuration(total)}</div>
+                    ${songs.length > 0 ? `<button class="album-play-all" onclick="Player.playQueue(${JSON.stringify(songs.map(s => ({id:s.id,title:s.title,artist:s.artist,album:s.album,coverArt:s.coverArt,duration:s.duration}))).replace(/"/g,'&quot;')})" style="margin:4px 0 18px;">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        播放全部
+                    </button>` : ''}
+                    ${songs.length > 0 ? this.songListHTML(songs) : this.emptyState('歌单为空')}
                 </div>
-                <h1 class="page-title">${escapeHtml(playlist.name || '歌单')}</h1>
-                ${songs.length > 0 ? `<button class="album-play-all" onclick="Player.playQueue(${JSON.stringify(songs.map(s => ({id:s.id,title:s.title,artist:s.artist,album:s.album,coverArt:s.coverArt,duration:s.duration}))).replace(/"/g,'&quot;')})" style="margin-bottom:20px;">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    播放全部
-                </button>` : ''}
-                ${songs.length > 0 ? this.songListHTML(songs) : this.emptyState('歌单为空')}
             `;
         } catch (e) {
             content.innerHTML = this.emptyState('加载失败：' + e.message);
@@ -3549,7 +3759,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.5')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.6')}
                 `)}
             </div>
         `;
@@ -3748,7 +3958,14 @@ const AppEnv = {
             App.closePlaylistModal();
             return true;
         }
-        // 3. 返回上一个视图
+        // 3. 详情页（歌单/专辑详情）：先退回列表页
+        if (App.detailParent) {
+            const parent = App.detailParent;
+            App.detailParent = null;
+            App.navigate(parent);
+            return true;
+        }
+        // 4. 返回上一个视图
         const stack = App.navStack || [];
         if (stack.length > 1) {
             stack.pop();

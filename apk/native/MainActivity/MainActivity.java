@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
@@ -141,6 +142,9 @@ public class MainActivity extends CordovaActivity
         appWebView.setBackgroundColor(Color.parseColor("#0f0f1e"));
         appWebView.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
+        // 让内容一直铺到状态栏下面（首页封面与状态栏融为一体）
+        enableEdgeToEdge();
+
         // 供网页切换状态栏明暗（首页浅色时需要深色图标）
         appWebView.addJavascriptInterface(new Object() {
             @JavascriptInterface
@@ -150,6 +154,73 @@ public class MainActivity extends CordovaActivity
         }, "SaltWaveNative");
 
         loadUrl(launchUrl);
+
+        // 布局完成后把真实状态栏/导航栏高度同步给网页（CSS 变量 --sbh / --sbn）
+        appWebView.postDelayed(new Runnable() {
+            @Override public void run() { syncInsets(); }
+        }, 300);
+    }
+
+    /** 全屏沉浸：WebView 延伸到状态栏/导航栏下方，由网页自己按 insets 留白 */
+    private void enableEdgeToEdge()
+    {
+        Window w = getWindow();
+        w.setStatusBarColor(Color.TRANSPARENT);
+        w.setNavigationBarColor(Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            w.setNavigationBarContrastEnforced(false);
+            w.setStatusBarContrastEnforced(false);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            w.setDecorFitsSystemWindows(false);
+        } else {
+            w.getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        }
+    }
+
+    /** 把状态栏/导航栏实际高度（dp）写进网页的 CSS 变量 */
+    private void syncInsets()
+    {
+        if (appWebView == null) {
+            return;
+        }
+        try {
+            int top = 0;
+            int bottom = 0;
+            android.view.WindowInsets ins = getWindow().getDecorView().getRootWindowInsets();
+            if (ins != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    top = ins.getInsets(android.view.WindowInsets.Type.statusBars()).top;
+                    bottom = ins.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom;
+                } else {
+                    top = ins.getSystemWindowInsetTop();
+                    bottom = ins.getSystemWindowInsetBottom();
+                }
+            }
+            float density = getResources().getDisplayMetrics().density;
+            int topDp = Math.round(top / density);
+            int bottomDp = Math.round(bottom / density);
+            String js = "(function(){var r=document.documentElement;"
+                    + "r.style.setProperty('--sbh','" + topDp + "px');"
+                    + "r.style.setProperty('--sbn','" + bottomDp + "px');})()";
+            appWebView.evaluateJavascript(js, null);
+        } catch (Throwable t) {
+            Log.w(TAG, "syncInsets failed", t);
+        }
+    }
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        if (appWebView != null) {
+            appWebView.postDelayed(new Runnable() {
+                @Override public void run() { syncInsets(); }
+            }, 150);
+        }
     }
 
     /** 切换系统栏明暗：light=true 时用浅色底 + 深色图标 */
@@ -158,19 +229,23 @@ public class MainActivity extends CordovaActivity
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                String barBg = light ? "#f6f4f2" : "#0f0f1e";
-                getWindow().setStatusBarColor(Color.parseColor(barBg));
-                getWindow().setNavigationBarColor(Color.parseColor(barBg));
-                int flag = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                        ? (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                            | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR : 0))
-                        : 0;
-                View decor = getWindow().getDecorView();
-                if (light) {
-                    decor.setSystemUiVisibility(flag);
-                } else {
-                    decor.setSystemUiVisibility(0);
+                // 系统栏透明（内容本身铺到状态栏下面），只切换图标明暗
+                getWindow().setStatusBarColor(Color.TRANSPARENT);
+                getWindow().setNavigationBarColor(Color.TRANSPARENT);
+                int iconFlags = 0;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    iconFlags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
                 }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    iconFlags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+                }
+                // API 30+ 由 setDecorFitsSystemWindows(false) 负责延伸；更低版本需要 layout flags
+                int layoutFlags = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) ? 0
+                        : (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+                getWindow().getDecorView().setSystemUiVisibility((light ? iconFlags : 0) | layoutFlags);
+                syncInsets();
             }
         });
     }
