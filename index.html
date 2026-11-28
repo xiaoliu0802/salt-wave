@@ -52,7 +52,7 @@
                     var b = document.getElementById('login-btn');
                     if (b) btnBg = getComputedStyle(b).backgroundColor;
                 } catch (e) {}
-                d.textContent = 'v1.0.18\nUA: ' + (navigator.userAgent || '') +
+                d.textContent = 'v1.0.19\nUA: ' + (navigator.userAgent || '') +
                     '\nViewport: ' + window.innerWidth + 'x' + window.innerHeight +
                     ' dpr' + (window.devicePixelRatio || 1) +
                     '\nCSSvar(--accent): ' + cssOk +
@@ -1964,41 +1964,53 @@
 
     .tablet-mode #app.active {
         display: grid;
-        grid-template-columns: 112px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         grid-template-rows: minmax(0, 1fr) 96px;
         height: 100%;
         overflow: hidden;
-        /* 车机左侧常驻系统按钮条，整块界面右移避让 */
-        padding-left: 96px;
-        box-sizing: border-box;
     }
+    /* 抽屉式导航：默认收起，点左上角菜单弹出 */
     .tablet-mode .tablet-rail {
         display: flex; flex-direction: column;
-        grid-column: 1; grid-row: 1;
-        min-height: 0;
-        padding: calc(8px + var(--sbh)) 7px 8px;
-        background: var(--bg-card);
-        border-right: 1px solid var(--border);
+        position: fixed;
+        left: 100px;
+        top: calc(var(--sbh) + 14px);
+        width: 312px;
+        max-height: calc(100% - var(--sbh) - 120px);
+        padding: 12px 10px;
+        border-radius: 22px;
+        background: rgba(252,251,250,.97);
+        box-shadow: 0 26px 70px rgba(0,0,0,.22);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        z-index: 275;
+        transform: translateX(-340px);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform .2s ease, opacity .16s ease;
     }
+    .tablet-mode .tablet-rail.open { transform: translateX(0); opacity: 1; pointer-events: auto; }
+    .tablet-mode #app.home-mode .tablet-rail { background: rgba(252,251,250,.97); border-right: 0; }
     .tablet-mode .rail-item {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        padding: 7px 2px; margin-bottom: 3px;
+        display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+        gap: 14px;
+        padding: 13px 16px; margin-bottom: 2px;
         border-radius: 14px;
-        color: var(--text-dim); font-size: 11px; font-weight: 600; letter-spacing: .3px;
+        color: #3d3d44; font-size: 17px; font-weight: 500; letter-spacing: 0;
         transition: background .15s, color .15s;
         -webkit-tap-highlight-color: transparent;
     }
-    .tablet-mode .rail-item svg { width: 22px; height: 22px; margin-bottom: 2px; }
+    .tablet-mode .rail-item svg { width: 22px; height: 22px; margin: 0; flex-shrink: 0; }
     .tablet-mode .rail-item:active { background: rgba(255,255,255,.07); }
-    .tablet-mode .rail-item.active { background: rgba(255,127,118,.16); color: var(--accent-light); }
-    .tablet-mode .rail-spacer { flex: 1 1 auto; min-height: 8px; }
+    .tablet-mode .rail-item.active { background: rgba(226,96,90,.12); color: #e2605a; font-weight: 700; }
+    .tablet-mode .rail-spacer { display: none; }
 
-    .tablet-mode .main-container { grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; }
+    .tablet-mode .main-container { grid-column: 1; grid-row: 1; min-width: 0; min-height: 0; }
     .tablet-mode .sidebar { display: none; }
-    .tablet-mode .page-content { width: 100%; max-width: none; margin: 0; padding-left: 28px; padding-right: 28px; }
-    .tablet-mode .top-bar { padding-left: 28px; padding-right: 28px; }
+    /* 左侧 96px 避让车机系统悬浮键条 */
+    .tablet-mode .page-content { width: 100%; max-width: none; margin: 0; padding-left: 96px; padding-right: 28px; }
+    .tablet-mode .top-bar { padding-left: 96px; padding-right: 28px; }
+    .tablet-mode .bar-back { display: none; }
 
     /* 底部播放条：整行铺满、固定 96px，不再外飘 */
     .tablet-mode .player-bar,
@@ -2022,7 +2034,7 @@
     .tablet-mode .player-artist { font-size: 13px; }
 
     /* 首页：铺满整屏，曲库四列一行，无需滚动 */
-    .tablet-mode .home { max-width: none; margin: 0; padding: calc(var(--sbh) + 10px) 32px 16px; }
+    .tablet-mode .home { max-width: none; margin: 0; padding: calc(var(--sbh) + 56px) 32px 16px 96px; }
     .tablet-mode .home-head { padding: 0 0 2px; }
     .tablet-mode .home-hero-bg { height: 300px; opacity: .4; }
     .tablet-mode .home-hero-mask { height: 340px; }
@@ -2034,6 +2046,25 @@
     .tablet-mode .lib-card { padding: 12px 12px; }
     .tablet-mode .lib-title { font-size: 17px; }
     .tablet-mode .home-sec-title { font-size: 22px; }
+
+    /* 菜单按钮与抽屉遮罩 */
+    .drawer-btn, .drawer-scrim { display: none; }
+    .tablet-mode .drawer-btn {
+        display: flex; position: fixed; left: 122px; top: calc(var(--sbh) + 16px);
+        width: 46px; height: 46px; border-radius: 50%;
+        align-items: center; justify-content: center;
+        background: rgba(255,255,255,.94); color: #35353b;
+        box-shadow: 0 8px 22px rgba(0,0,0,.13);
+        z-index: 285; border: 0;
+    }
+    .tablet-mode .drawer-btn svg { width: 22px; height: 22px; }
+    .tablet-mode .drawer-scrim {
+        display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 270; background: transparent;
+    }
+    .tablet-mode.drawer-open .drawer-scrim { display: block; }
+    .tablet-mode.drawer-open .drawer-btn { opacity: 0; pointer-events: none; }
+    .tablet-mode .drawer-btn { transition: opacity .12s linear; }
 
     /* 进度条 / 音量条：加高触摸热区，便于滑动 */
     .progress-track, .volume-track { position: relative; }
@@ -2048,7 +2079,9 @@
     .tablet-mode .ss-sheet { width: 760px; max-width: 94vw; margin: 0 auto 18px; border-radius: 22px; }
 
     /* 设置页：内容居中限宽，避免 1900 宽的一行长条 */
-    .tablet-mode .settings-page > * { max-width: 880px; margin-left: auto; margin-right: auto; }
+    .tablet-mode .settings-page > * { max-width: none; margin-left: 0; margin-right: 0; }
+    .tablet-mode .settings-back { display: none; }
+    .tablet-mode .settings-page { padding: calc(var(--sbh) + 8px) 28px 24px 96px; max-width: none; margin: 0; box-sizing: border-box; }
 
     /* 播放页：左信息 / 右歌词 双栏 */
     /* 歌词页：车机上取消整页位移与模糊底（省算力，不再卡顿） */
@@ -2061,24 +2094,36 @@
     .tablet-mode .lyrics-panel {
         display: grid;
         box-sizing: border-box;
-        padding: 0 0 0 140px;
-        overflow: hidden;
-        grid-template-columns: minmax(300px, 31%) minmax(0, 1fr);
+        grid-template-columns: minmax(320px, 40%) minmax(0, 1fr);
         grid-template-rows: auto minmax(0, 1fr) auto;
-        grid-template-areas: "head lyr" "cover lyr" "foot lyr";
-        column-gap: 40px;
+        grid-template-columns: minmax(300px, 38%) minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        column-gap: 46px;
         width: 100%; max-width: none;
         height: 100%;
-        padding: var(--sbh) 44px var(--sbn);
+        overflow: hidden;
+        padding: var(--sbh) 44px var(--sbn) 140px;
     }
-    .tablet-mode .lyrics-cover { display: block; grid-area: cover; width: 100%; max-width: 300px; height: 300px; object-fit: cover; border-radius: 22px; justify-self: start; align-self: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); margin: 10px 0; }
-    .tablet-mode .lyrics-panel-header { grid-area: head; padding: calc(var(--sbh) + 20px) 0 0; justify-content: flex-start; }
+    .tablet-mode .lyrics-cover { display: block; grid-column: 1; grid-row: 1 / span 2; width: 336px; height: 336px; max-width: none; object-fit: cover; border-radius: 50%; justify-self: center; align-self: center; box-shadow: 0 26px 78px rgba(0,0,0,.62), 0 0 0 10px rgba(255,255,255,.05); margin: 0; }
+    .tablet-mode .lyrics-panel-header { grid-column: 2; grid-row: 1; padding: 10px 0 0; justify-content: flex-start; }
     .tablet-mode .lyrics-panel-header::before { top: 6px; width: 54px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.34); }
-    .tablet-mode .lyrics-panel-content { grid-area: lyr; max-width: none; padding: 84px 10px 28px; }
-    .tablet-mode .lyrics-footer { grid-area: foot; align-self: end; padding: 0 0 calc(var(--sbn) + 12px); }
+    .tablet-mode .lyrics-panel-content { grid-column: 2; grid-row: 2; max-width: none; padding: 4px 10px 20px; }
+    /* 底部：整宽进度线 + 左侧功能键 + 居中播放控制（参考 Salt Player 布局） */
+    .tablet-mode .lyrics-footer {
+        grid-column: 1 / -1; grid-row: 3;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        grid-template-areas: "label label times" "track track track" "actions btns end";
+        align-items: center;
+        column-gap: 18px;
+        padding: 4px 0 calc(var(--sbn) + 4px);
+    }
     .tablet-mode .lc-spectrum { display: none; }
-    .tablet-mode .lc-label { margin-bottom: 2px; }
-    .tablet-mode .lc-times { margin-top: 2px; }
+    .tablet-mode .lc-label { grid-area: label; justify-self: start; margin: 0 0 6px; }
+    .tablet-mode .lc-times { grid-area: times; justify-self: end; margin: 0 0 6px; font-size: 14px; gap: 12px; }
+    .tablet-mode .lc-track { grid-area: track; width: 100%; height: 5px; margin: 0 0 10px; }
+    .tablet-mode .lc-actions { grid-area: actions; justify-self: start; display: flex; gap: 22px; }
+    .tablet-mode .lc-buttons { grid-area: btns; justify-self: center; gap: 28px; }
     .tablet-mode .lyrics-title { font-size: 25px; }
     .tablet-mode .lyrics-artist { font-size: 15px; margin-top: 4px; }
     .tablet-mode .lc-times { font-size: 13px; }
@@ -2126,11 +2171,15 @@
             <div class="login-error" id="login-error"></div>
         </form>
     </div>
-    <div class="login-foot" id="login-foot">v1.0.18</div>
+    <div class="login-foot" id="login-foot">v1.0.19</div>
 </div>
 
 <!-- ===== 主应用 ===== -->
 <div id="app">
+    <button class="drawer-btn" id="drawer-btn" onclick="App.toggleDrawer(event)" aria-label="菜单">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="drawer-scrim" id="drawer-scrim" onclick="App.closeDrawer()"></div>
     <!-- 平板 / 车机模式左侧导航（仅在宽屏横屏时显示） -->
     <div class="tablet-rail" id="tablet-rail">
         <button class="rail-item" data-view="home" onclick="App.navigate('home')" title="首页">
@@ -4095,7 +4144,23 @@ const App = {
         location.reload();
     },
 
+    toggleDrawer(ev) {
+        if (ev) { try { ev.stopPropagation(); } catch (e) {} }
+        const rail = document.getElementById("tablet-rail");
+        if (!rail) return;
+        if (rail.classList.contains("open")) { this.closeDrawer(); return; }
+        rail.classList.add("open");
+        document.documentElement.classList.add("drawer-open");
+        if (document.body) document.body.classList.add("drawer-open");
+    },
+    closeDrawer() {
+        const rail = document.getElementById("tablet-rail");
+        if (rail) rail.classList.remove("open");
+        document.documentElement.classList.remove("drawer-open");
+        if (document.body) document.body.classList.remove("drawer-open");
+    },
     navigate(view) {
+        this.closeDrawer();
         this.currentView = view;
         this.detailParent = null;
         this.songLists = {};
@@ -4990,7 +5055,7 @@ const App = {
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
                     ${rowInfo('运行内核', escapeHtml(App.webviewInfo()))}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.18')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.19')}
                 `)}
             </div>
         `;
@@ -5326,7 +5391,7 @@ try {
     var ua = navigator.userAgent || '';
     var cm = ua.match(/Chrome\/([\d.]+)/);
     var foot = document.getElementById('login-foot');
-    if (foot) foot.textContent = 'v1.0.18 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
+    if (foot) foot.textContent = 'v1.0.19 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
 } catch (e) { console.error(e); }
 try { Player.init(); } catch (e) { console.error(e); showFatal('Player.init', e); }
 try { AppEnv.init(); } catch (e) { console.error(e); showFatal('AppEnv.init', e); }
