@@ -107,3 +107,18 @@ python make-icons.py
 ## 五、许可证
 
 本项目仅作为个人学习和使用，与 Salt Player（椒盐音乐）官方无关。
+
+## 原生版（native/）
+
+`native/` 是原生 Android 客户端，技术栈 Kotlin + Jetpack Compose + Media3（ExoPlayer），
+播放服务是 `MediaSessionService`，通知栏 / 锁屏 / 耳机线控 / 音频焦点都交给 Media3：
+
+- ExoPlayer 串流播放，支持无缝续播、拖动、倍速等播放器能力
+- 后台播放 + 前台服务（`foregroundServiceType=mediaPlayback`），锁屏与通知栏媒体控制
+- 耳机拔出自动暂停、来电等音频焦点丢失自动暂停
+- 专辑 / 歌单 / 收藏 三栏网格，歌单与专辑共用同一套卡片样式
+- 登录后直连 Navidrome（Subsonic API，token 认证），HTTP 明文已放行
+- 不做离线缓存，全部实时串流
+
+APK 由 `.github/workflows/native-apk.yml` 在 push / PR 时自动构建，
+产物在 Actions 的 `SaltWave-Native-APK` artifact 里（debug + release 都签名，可直接覆盖安装）。
