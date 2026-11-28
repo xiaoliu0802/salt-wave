@@ -110,12 +110,13 @@ python make-icons.py
 
 ## 原生版（native/）
 
-`native/` 是一套纯 Java 的原生 Android 客户端（不依赖 WebView / Cordova / AndroidX），
-播放走系统 `MediaPlayer` + `MediaSession` + `ForegroundService`：
+`native/` 是原生 Android 客户端，技术栈 Kotlin + Jetpack Compose + Media3（ExoPlayer），
+播放服务是 `MediaSessionService`，通知栏 / 锁屏 / 耳机线控 / 音频焦点都交给 Media3：
 
-- 后台播放、锁屏与通知栏控制（上一首 / 播放暂停 / 下一首）
-- 音频焦点与耳机拔出自动暂停
-- 专辑 / 歌单 / 收藏 三栏网格，歌单与专辑同一套卡片样式
+- ExoPlayer 串流播放，支持无缝续播、拖动、倍速等播放器能力
+- 后台播放 + 前台服务（`foregroundServiceType=mediaPlayback`），锁屏与通知栏媒体控制
+- 耳机拔出自动暂停、来电等音频焦点丢失自动暂停
+- 专辑 / 歌单 / 收藏 三栏网格，歌单与专辑共用同一套卡片样式
 - 登录后直连 Navidrome（Subsonic API，token 认证），HTTP 明文已放行
 - 不做离线缓存，全部实时串流
 
