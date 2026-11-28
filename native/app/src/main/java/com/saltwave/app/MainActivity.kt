@@ -50,6 +50,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -480,8 +481,7 @@ fun HomeScreen(
                                 )
                             }
                         }
-                        items(list) { track ->
-                            val index = list.indexOf(track)
+                        itemsIndexed(list) { index, track ->
                             TrackRow(track, Now.mediaId == track.id) {
                                 startPlay(controller, list, index, context)
                             }
