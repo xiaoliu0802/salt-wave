@@ -27,6 +27,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -41,6 +42,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -115,6 +117,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -125,6 +131,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -136,6 +143,7 @@ import androidx.media3.session.SessionToken
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 sealed interface Screen {
@@ -281,6 +289,13 @@ fun AppRoot(controller: MediaController?) {
     LaunchedEffect(current) {
         if (current is Screen.Home && Repo.api != null && !Repo.loaded && !Repo.loading) {
             runCatching { Repo.load() }
+        }
+    }
+
+    // 曲库一就绪就在后台把全部歌曲拉完，不用等用户点“歌曲”tab
+    LaunchedEffect(Repo.loaded, Repo.demo) {
+        if (Repo.loaded && Repo.api != null && !Repo.demo && !Repo.songsDone) {
+            runCatching { Repo.loadAllSongs() }
         }
     }
 
@@ -461,9 +476,10 @@ fun HomeScreen(
             Repo.loading -> EmptyBox("正在从服务器读取…")
             tab == 0 -> {
                 val list = Repo.songs.toList()
+                val scope = rememberCoroutineScope()
                 when {
                     list.isEmpty() && Repo.songsLoading ->
-                        EmptyBox("正在读取歌曲…\n按专辑顺序一页页拉，第一屏马上出来")
+                        EmptyBox("正在读取歌曲…\n先把专辑列表翻完，再一张张取歌")
 
                     list.isEmpty() && Repo.songsDone -> EmptyBox("曲库里还没有歌")
 
@@ -471,15 +487,29 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = if (AppSettings.showMiniPlayer) 96.dp else 20.dp),
                     ) {
-                        if (Repo.songsLoading) {
-                            item {
-                                Text(
-                                    "读取中 · 已拿到 ${Repo.songs.size} 首（扫描 ${Repo.songsTotal} 张专辑）",
-                                    fontSize = 11.sp,
-                                    color = c.sub,
-                                    modifier = Modifier.padding(bottom = 4.dp),
-                                )
+                        item {
+                            val text = when {
+                                Repo.songsLoading ->
+                                    "读取中 · ${Repo.songs.size} 首" +
+                                        if (Repo.songsExpected > 0) " / 共 ${Repo.songsExpected} 首" else ""
+
+                                Repo.songsFailed > 0 ->
+                                    "已读 ${Repo.songs.size} 首 · ${Repo.songsFailed} 张专辑没收全，点此重试"
+
+                                else -> "共 ${Repo.songs.size} 首 · ${Repo.songsTotal} 张专辑"
                             }
+                            Text(
+                                text,
+                                fontSize = 11.sp,
+                                color = if (Repo.songsFailed > 0) c.accent else c.sub,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = !Repo.songsLoading && Repo.songsFailed > 0) {
+                                        Repo.retrySongs()
+                                        scope.launch { runCatching { Repo.loadAllSongs() } }
+                                    }
+                                    .padding(bottom = 6.dp),
+                            )
                         }
                         itemsIndexed(list) { index, track ->
                             TrackRow(track, Now.mediaId == track.id) {
@@ -1341,7 +1371,7 @@ fun MiniPlayer(
                     Text(
                         lyric.ifEmpty { Now.artist },
                         fontSize = 11.sp,
-                        color = if (lyric.isNotEmpty()) c.accent else c.sub,
+                        color = if (lyric.isNotEmpty()) lyricColor() else c.sub,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 1.dp),
@@ -1807,7 +1837,7 @@ fun SettingsScreen(controller: MediaController?, onBack: () -> Unit, onLogin: ()
             item {
                 GroupTitle("关于")
                 SettingCard {
-                    Text("Salt Wave 1.4", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.ink)
+                    Text("Salt Wave 1.4.1", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.ink)
                     Text(
                         "Navidrome / Subsonic 客户端 · ExoPlayer(Media3) 内核 · 全部实时串流，不做离线缓存",
                         fontSize = 11.sp,
@@ -2091,6 +2121,8 @@ fun PlayerScreen(
     var dragValue by remember { mutableFloatStateOf(0f) }
     var lyricLines by remember(Now.mediaId) { mutableStateOf<List<LyricLine>>(emptyList()) }
     var lyricLoading by remember(Now.mediaId) { mutableStateOf(false) }
+    var dragY by remember { mutableFloatStateOf(0f) }
+    var closing by remember { mutableStateOf(false) }
     val pager = rememberPagerState(pageCount = { 2 })
 
     LaunchedEffect(Now.mediaId) {
@@ -2121,7 +2153,27 @@ fun PlayerScreen(
         scope.launch { pager.animateScrollToPage(0) }
     }
 
-    Box(Modifier.fillMaxSize().background(c.playerBg)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .offset { IntOffset(0, dragY.roundToInt()) }
+            .background(c.playerBg)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragEnd = {
+                        val close = dragY > 140f
+                        dragY = 0f
+                        if (close) onBack()
+                    },
+                    onDragCancel = { dragY = 0f },
+                ) { change, dy ->
+                    if (dy > 0f || dragY > 0f) {
+                        dragY = (dragY + dy).coerceAtLeast(0f)
+                        change.consume()
+                    }
+                }
+            },
+    ) {
         if (Now.artwork != null) {
             AsyncImage(
                 model = Now.artwork,
@@ -2150,47 +2202,11 @@ fun PlayerScreen(
         HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
             if (page == 0) {
                 Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onBack, modifier = Modifier.size(38.dp)) {
-                            Icon(
-                                Icons.Rounded.ArrowBackIosNew,
-                                contentDescription = "返回",
-                                tint = ink,
-                                modifier = Modifier.size(17.dp),
-                            )
-                        }
-                        Column(
-                            Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text("正在播放", fontSize = 10.sp, color = dim)
-                            Text(
-                                Now.album.ifEmpty { "Salt Wave" },
-                                fontSize = 12.sp,
-                                color = ink,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        IconButton(onClick = onQueue, modifier = Modifier.size(38.dp)) {
-                            Icon(Icons.Rounded.QueueMusic, contentDescription = "队列", tint = ink, modifier = Modifier.size(20.dp))
-                        }
-                    }
-                    Spacer(Modifier.height(2.dp))
-
-                    Box(
-                        Modifier.fillMaxWidth().weight(1f),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        VinylDisc(Now.artwork, Now.playing)
-                    }
-
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(16.dp))
                     Text(
-                        Now.title.ifEmpty { "还没有正在播放的歌" },
+                        Now.title.ifEmpty { "Salt Wave" },
                         modifier = Modifier.fillMaxWidth(),
-                        fontSize = 20.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = ink,
                         textAlign = TextAlign.Center,
@@ -2199,15 +2215,23 @@ fun PlayerScreen(
                     )
                     Text(
                         Now.artist.ifEmpty { " " },
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        fontSize = 12.sp,
+                        modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                        fontSize = 11.sp,
                         color = dim,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    Spacer(Modifier.height(4.dp))
 
-                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        Modifier.fillMaxWidth().weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        VinylDisc(Now.artwork, Now.playing)
+                    }
+
+                    Spacer(Modifier.height(4.dp))
                     Column(
                         Modifier
                             .fillMaxWidth()
@@ -2263,143 +2287,36 @@ fun PlayerScreen(
                         Text(mmss(duration - position), fontSize = 10.sp, color = dim)
                     }
 
-                    Row(
-                        Modifier.fillMaxWidth().padding(top = 6.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        IconButton(onClick = { controller?.shuffleModeEnabled = !Now.shuffle }) {
-                            Icon(
-                                Icons.Rounded.Shuffle,
-                                contentDescription = "随机",
-                                tint = if (Now.shuffle) accent else Color(0x8FFFFFFF),
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        IconButton(onClick = { controller?.seekToPreviousMediaItem() }, modifier = Modifier.size(44.dp)) {
-                            Icon(Icons.Rounded.SkipPrevious, contentDescription = "上一首", tint = ink, modifier = Modifier.size(28.dp))
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        FilledIconButton(
-                            onClick = {
-                                val p = controller ?: return@FilledIconButton
-                                when {
-                                    p.isPlaying -> p.pause()
-                                    p.playbackState == Player.STATE_ENDED -> {
-                                        p.seekTo(0)
-                                        p.play()
-                                    }
-
-                                    else -> p.play()
-                                }
-                            },
-                            modifier = Modifier.size(66.dp),
-                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = accent),
-                        ) {
-                            if (Now.buffering) {
-                                CircProgress()
-                            } else {
-                                Icon(
-                                    if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                    contentDescription = "播放/暂停",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(30.dp),
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        IconButton(onClick = { controller?.seekToNextMediaItem() }, modifier = Modifier.size(44.dp)) {
-                            Icon(Icons.Rounded.SkipNext, contentDescription = "下一首", tint = ink, modifier = Modifier.size(28.dp))
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        IconButton(onClick = {
-                            controller?.repeatMode = when (Now.repeatMode) {
-                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                else -> Player.REPEAT_MODE_OFF
-                            }
-                        }) {
-                            Icon(
-                                if (Now.repeatMode == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
-                                contentDescription = "循环",
-                                tint = if (Now.repeatMode == Player.REPEAT_MODE_OFF) Color(0x8FFFFFFF) else accent,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    }
-
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp, bottom = 12.dp)
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        DarkPill("音质 ${AppSettings.bitrateText()}") { onSettings() }
-                        DarkPill("${formatSpeed(Now.speed)}×") {
-                            val next = SpeedOptions[
-                                (SpeedOptions.indexOfFirst { it == Now.speed }.let { if (it < 0) 1 else it } + 1) % SpeedOptions.size
-                            ]
-                            AppSettings.speed = next
-                            pushPlaybackSettings(context)
-                            controller?.setPlaybackSpeed(next)
-                        }
-                        DarkPill("-${AppSettings.seekStep}s") {
-                            seekTo(Now.position - AppSettings.seekStep * 1000L)
-                        }
-                        DarkPill("+${AppSettings.seekStep}s") {
-                            seekTo(Now.position + AppSettings.seekStep * 1000L)
-                        }
-                        DarkPill(
-                            text = if (Now.sleepUntil != null) "定时 ${sleepLeftText()}" else "定时",
-                            active = Now.sleepUntil != null,
-                        ) { showSleep = true }
-                        DarkPill("音量平衡", active = AppSettings.balance) {
-                            AppSettings.balance = !AppSettings.balance
-                            pushPlaybackSettings(context)
-                            toast(context, if (AppSettings.balance) "音量平衡已开" else "音量平衡已关")
-                        }
-                        DarkPill("淡入淡出", active = AppSettings.fade) {
-                            AppSettings.fade = !AppSettings.fade
-                            pushPlaybackSettings(context)
-                        }
-                        DarkPill("无缝播放", active = AppSettings.gapless) {
-                            AppSettings.gapless = !AppSettings.gapless
-                            pushPlaybackSettings(context)
-                        }
-                    }
+                    TransportBar(
+                        controller = controller,
+                        accent = accent,
+                        ink = ink,
+                        dim = Color(0x8FFFFFFF),
+                        onQueue = onQueue,
+                    )
                 }
             } else {
                 Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = { scope.launch { pager.animateScrollToPage(0) } },
-                            modifier = Modifier.size(38.dp),
-                        ) {
-                            Icon(
-                                Icons.Rounded.ArrowBackIosNew,
-                                contentDescription = "回到播放页",
-                                tint = ink,
-                                modifier = Modifier.size(17.dp),
-                            )
-                        }
-                        Column(Modifier.weight(1f)) {
-                            Text("歌词", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = ink)
-                            Text(
-                                Now.title,
-                                fontSize = 11.sp,
-                                color = dim,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        IconButton(onClick = onQueue, modifier = Modifier.size(38.dp)) {
-                            Icon(Icons.Rounded.QueueMusic, contentDescription = "队列", tint = ink, modifier = Modifier.size(20.dp))
-                        }
-                    }
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        Now.title.ifEmpty { "Salt Wave" },
+                        modifier = Modifier.fillMaxWidth(),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ink,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        Now.artist.ifEmpty { " " },
+                        modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                        fontSize = 11.sp,
+                        color = dim,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
 
                     Spacer(Modifier.height(4.dp))
                     Box(Modifier.fillMaxWidth().weight(1f)) {
@@ -2418,9 +2335,34 @@ fun PlayerScreen(
                             LaunchedEffect(active) {
                                 if (active >= 1) ls.animateScrollToItem(active - 1)
                             }
+                            // 歌词滚到顶部还继续下拉，就把播放页整体往下拖，松手收回
+                            val pullClose = remember(ls) {
+                                object : NestedScrollConnection {
+                                    override fun onPostScroll(
+                                        consumed: Offset,
+                                        available: Offset,
+                                        source: NestedScrollSource,
+                                    ): Offset {
+                                        if (available.y > 0f &&
+                                            ls.firstVisibleItemIndex == 0 &&
+                                            ls.firstVisibleItemScrollOffset == 0 &&
+                                            !closing
+                                        ) {
+                                            dragY = (dragY + available.y).coerceAtLeast(0f)
+                                            if (dragY > 170f) {
+                                                closing = true
+                                                dragY = 0f
+                                                onBack()
+                                            }
+                                            return Offset(0f, available.y)
+                                        }
+                                        return Offset.Zero
+                                    }
+                                }
+                            }
                             LazyColumn(
                                 state = ls,
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize().nestedScroll(pullClose),
                                 contentPadding = PaddingValues(vertical = 60.dp),
                             ) {
                                 items(lyricLines.size) { i ->
@@ -2457,31 +2399,18 @@ fun PlayerScreen(
                             seekTo(t)
                         },
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(mmss(position), fontSize = 10.sp, color = dim)
-                        Spacer(Modifier.width(8.dp))
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(mmss(position), fontSize = 10.sp, color = dim, modifier = Modifier.weight(1f))
                         Text(mmss(duration - position), fontSize = 10.sp, color = dim)
-                        Spacer(Modifier.weight(1f))
-                        IconButton(
-                            onClick = {
-                                val p = controller ?: return@IconButton
-                                if (p.isPlaying) p.pause() else p.play()
-                            },
-                            modifier = Modifier.size(44.dp),
-                        ) {
-                            if (Now.buffering) {
-                                CircProgress(22.dp, accent)
-                            } else {
-                                Icon(
-                                    if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                    contentDescription = "播放/暂停",
-                                    tint = lyricTint,
-                                    modifier = Modifier.size(26.dp),
-                                )
-                            }
-                        }
                     }
-                    Spacer(Modifier.height(10.dp))
+                    TransportBar(
+                        controller = controller,
+                        accent = accent,
+                        ink = ink,
+                        dim = Color(0x8FFFFFFF),
+                        onQueue = onQueue,
+                    )
+                    Spacer(Modifier.height(14.dp))
                 }
             }
         }
@@ -2530,6 +2459,92 @@ fun PlayerScreen(
             titleContentColor = c.ink,
             textContentColor = c.ink,
         )
+    }
+}
+
+@Composable
+fun TransportBar(
+    controller: MediaController?,
+    accent: Color,
+    ink: Color,
+    dim: Color,
+    onQueue: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = { controller?.shuffleModeEnabled = !Now.shuffle },
+            modifier = Modifier.size(42.dp),
+        ) {
+            Icon(
+                Icons.Rounded.Shuffle,
+                contentDescription = "随机",
+                tint = if (Now.shuffle) accent else dim,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        IconButton(
+            onClick = { controller?.seekToPreviousMediaItem() },
+            modifier = Modifier.size(42.dp),
+        ) {
+            Icon(Icons.Rounded.SkipPrevious, contentDescription = "上一首", tint = ink, modifier = Modifier.size(26.dp))
+        }
+        FilledIconButton(
+            onClick = {
+                val p = controller ?: return@FilledIconButton
+                when {
+                    p.isPlaying -> p.pause()
+                    p.playbackState == Player.STATE_ENDED -> {
+                        p.seekTo(0)
+                        p.play()
+                    }
+
+                    else -> p.play()
+                }
+            },
+            modifier = Modifier.size(58.dp),
+            colors = IconButtonDefaults.filledIconButtonColors(containerColor = accent),
+        ) {
+            if (Now.buffering) {
+                CircProgress(24.dp)
+            } else {
+                Icon(
+                    if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = "播放/暂停",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
+        IconButton(
+            onClick = { controller?.seekToNextMediaItem() },
+            modifier = Modifier.size(42.dp),
+        ) {
+            Icon(Icons.Rounded.SkipNext, contentDescription = "下一首", tint = ink, modifier = Modifier.size(26.dp))
+        }
+        IconButton(
+            onClick = {
+                controller?.repeatMode = when (Now.repeatMode) {
+                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                    else -> Player.REPEAT_MODE_OFF
+                }
+            },
+            modifier = Modifier.size(42.dp),
+        ) {
+            Icon(
+                if (Now.repeatMode == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+                contentDescription = "循环",
+                tint = if (Now.repeatMode == Player.REPEAT_MODE_OFF) dim else accent,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        IconButton(onClick = onQueue, modifier = Modifier.size(42.dp)) {
+            Icon(Icons.Rounded.QueueMusic, contentDescription = "播放列表", tint = dim, modifier = Modifier.size(20.dp))
+        }
     }
 }
 

@@ -5,10 +5,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 
 /** 全局曲库状态（内存缓存，不做离线存储）。 */
 object Repo {
@@ -28,6 +30,8 @@ object Repo {
     var songsTotal by mutableIntStateOf(0)
     var songsDone by mutableStateOf(false)
     var songsLoading by mutableStateOf(false)
+    var songsExpected by mutableIntStateOf(0)
+    var songsFailed by mutableIntStateOf(0)
     private var songsCursor = 0
 
     private val songCache = HashMap<String, List<Track>>()
@@ -46,6 +50,8 @@ object Repo {
         artistCache.clear()
         songs.clear()
         songsTotal = 0
+        songsExpected = 0
+        songsFailed = 0
         songsDone = false
         songsLoading = false
         songsCursor = 0
@@ -64,29 +70,57 @@ object Repo {
         try {
             if (albums.isEmpty()) load()
             // 关键：先把专辑分页全部拉完，否则只会拿到前 100 张专辑的歌
-            while (!albumsDone) loadMoreAlbums()
+            while (!albumsDone) {
+                delay(60)
+                loadMoreAlbums()
+            }
             val list = albums.toList()
             songsTotal = list.size
+            songsExpected = list.sumOf { it.count }
             var cursor = songsCursor
             while (cursor < list.size) {
                 val batch = list.subList(cursor, minOf(cursor + BATCH, list.size))
                 val fetched = coroutineScope {
                     batch.map { al ->
                         async(Dispatchers.IO) {
-                            runCatching { client.albumSongs(al.id) }.getOrDefault(emptyList())
+                            var got = runCatching { client.albumSongs(al.id) }.getOrDefault(emptyList())
+                            // 少给了就再要一次，Navidrome 偶尔会漏行
+                            if (al.count > 0 && got.size < al.count) {
+                                delay(250)
+                                val again = runCatching { client.albumSongs(al.id) }.getOrDefault(emptyList())
+                                if (again.size > got.size) got = again
+                            }
+                            got
                         }
                     }.awaitAll()
                 }
                 fetched.forEach { songs.addAll(it) }
+                for (i in batch.indices) {
+                    val expect = batch[i].count
+                    if (expect > 0 && fetched[i].size < expect) songsFailed++
+                }
                 cursor += batch.size
                 songsCursor = cursor
             }
             songsDone = true
+        } catch (c: CancellationException) {
+            // 切走 tab 会取消协程，这里不能把“读完”钉死，回来还要接着拉
+            throw c
         } catch (e: Exception) {
-            songsDone = true
+            // 网络断了不标记完成，下次进入还会从游标继续
         } finally {
             songsLoading = false
         }
+    }
+
+    /** 清掉重扫，给“有专辑没读全”兜底。 */
+    fun retrySongs() {
+        if (demo) return
+        songs.clear()
+        songsFailed = 0
+        songsDone = false
+        songsCursor = 0
+        songsLoading = false
     }
 
     suspend fun load() {
@@ -133,8 +167,8 @@ object Repo {
         }
     }
 
-    private const val PAGE = 100
-    private const val BATCH = 8
+    private const val PAGE = 200
+    private const val BATCH = 12
 
     fun cachedSongs(playlist: Boolean, id: String): List<Track>? = songCache[key(playlist, id)]
 
@@ -218,6 +252,8 @@ object Repo {
         songs.clear()
         for (i in 0 until 3) songs.addAll(demoSongs(names[i], artistNames[i], covers[i]))
         songsDone = true
+        songsExpected = songs.size
+        songsFailed = 0
         songsTotal = albums.size
     }
 
