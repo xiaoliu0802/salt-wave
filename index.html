@@ -52,7 +52,7 @@
                     var b = document.getElementById('login-btn');
                     if (b) btnBg = getComputedStyle(b).backgroundColor;
                 } catch (e) {}
-                d.textContent = 'v1.0.20\nUA: ' + (navigator.userAgent || '') +
+                d.textContent = 'v1.0.21\nUA: ' + (navigator.userAgent || '') +
                     '\nViewport: ' + window.innerWidth + 'x' + window.innerHeight +
                     ' dpr' + (window.devicePixelRatio || 1) +
                     '\nCSSvar(--accent): ' + cssOk +
@@ -641,17 +641,18 @@
         }
         .volume-track {
             width: 80px;
-            height: 4px;
-            background: var(--bg-elevated);
-            border-radius: 2px;
+            height: 6px;
+            background: rgba(110,110,130,.45);
+            border-radius: 3px;
             cursor: pointer;
             position: relative;
         }
         .volume-fill {
             height: 100%;
-            background: var(--text);
-            border-radius: 2px;
+            background: #fff;
+            border-radius: 3px;
             width: 70%;
+            box-shadow: 0 0 0 1px rgba(255,255,255,.18);
         }
 
         /* ===== 歌单列表 ===== */
@@ -2009,7 +2010,7 @@
         --player-height: 96px;
         height: 96px;
         margin: 0; border-radius: 0;
-        padding-right: 56px;
+        padding-right: 112px;
         border-top: 1px solid rgba(0,0,0,.06);
         padding: 0 26px; box-sizing: border-box;
         gap: 18px; overflow: hidden; box-shadow: none;
@@ -2037,6 +2038,30 @@
     .tablet-mode .lib-card { padding: 12px 12px; }
     .tablet-mode .lib-title { font-size: 17px; }
     .tablet-mode .home-sec-title { font-size: 22px; }
+
+    /* 车机性能：禁用所有背景模糊（WebView 上最吃 GPU） */
+    .tablet-mode *, .tablet-mode *::before, .tablet-mode *::after {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+    .tablet-mode .home-hero-bg { filter: none !important; }
+    /* 歌词远处行用透明度而不是 GPU 模糊 */
+    .tablet-mode .lyrics-line.ln1, .tablet-mode .lyrics-line.ln2, .tablet-mode .lyrics-line.ln3 {
+        filter: none !important;
+    }
+    .tablet-mode .lyrics-line.ln1 { opacity: .82; }
+    .tablet-mode .lyrics-line.ln2 { opacity: .62; }
+    .tablet-mode .lyrics-line.ln3 { opacity: .46; }
+    /* 顶部状态栏融合：深色渐变淡出到页面背景 */
+    .status-scrim { display: none; }
+    .tablet-mode .status-scrim {
+        display: block;
+        position: fixed; left: 0; right: 0; top: 0;
+        height: calc(var(--sbh) + 22px);
+        z-index: 240;
+        pointer-events: none;
+        background: linear-gradient(180deg, rgba(10,10,16,.94) 0%, rgba(10,10,16,.9) 62%, rgba(10,10,16,.42) 86%, rgba(10,10,16,0) 100%);
+    }
 
     /* 进度条 / 音量条：加高触摸热区，便于滑动 */
     .progress-track, .volume-track { position: relative; }
@@ -2094,10 +2119,10 @@
     .tablet-mode .lc-label { grid-area: label; justify-self: start; margin: 0 0 6px; }
     .tablet-mode .lc-times { grid-area: times; justify-self: end; margin: 0 0 6px; font-size: 14px; gap: 12px; }
     .tablet-mode .lc-track { grid-area: track; width: 100%; height: 5px; margin: 0 0 10px; }
-    .tablet-mode .lc-actions { grid-area: actions; justify-self: start; display: flex; align-items: center; gap: 40px; }
+    .tablet-mode .lc-actions { grid-area: actions; justify-self: start; display: flex; align-items: center; gap: 60px; }
     .tablet-mode .lc-sec-btn { width: 44px; height: 44px; }
     .tablet-mode .lc-buttons { grid-area: btns; justify-self: center; gap: 28px; }
-    .tablet-mode .lc-volume { grid-area: vol; justify-self: end; display: flex; align-items: center; gap: 10px; padding-right: 4px; }
+    .tablet-mode .lc-volume { grid-area: vol; justify-self: end; display: flex; align-items: center; gap: 10px; padding-right: 40px; }
     .tablet-mode .lc-volume .lc-vol-icon { width: 18px; height: 18px; color: rgba(255,255,255,.55); flex-shrink: 0; }
     .tablet-mode .lc-vol-track {
         position: relative; width: 150px; height: 8px; border-radius: 4px;
@@ -2152,11 +2177,12 @@
             <div class="login-error" id="login-error"></div>
         </form>
     </div>
-    <div class="login-foot" id="login-foot">v1.0.20</div>
+    <div class="login-foot" id="login-foot">v1.0.21</div>
 </div>
 
 <!-- ===== 主应用 ===== -->
 <div id="app">
+    <div class="status-scrim" id="status-scrim"></div>
     <!-- 平板 / 车机模式左侧导航（仅在宽屏横屏时显示） -->
     <div class="tablet-rail" id="tablet-rail">
         <button class="rail-item" data-view="home" onclick="App.navigate('home')" title="首页">
@@ -5029,7 +5055,7 @@ const App = {
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
                     ${rowInfo('运行内核', escapeHtml(App.webviewInfo()))}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.20')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.21')}
                 `)}
             </div>
         `;
@@ -5365,7 +5391,7 @@ try {
     var ua = navigator.userAgent || '';
     var cm = ua.match(/Chrome\/([\d.]+)/);
     var foot = document.getElementById('login-foot');
-    if (foot) foot.textContent = 'v1.0.20 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
+    if (foot) foot.textContent = 'v1.0.21 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
 } catch (e) { console.error(e); }
 try { Player.init(); } catch (e) { console.error(e); showFatal('Player.init', e); }
 try { AppEnv.init(); } catch (e) { console.error(e); showFatal('AppEnv.init', e); }
