@@ -52,7 +52,7 @@
                     var b = document.getElementById('login-btn');
                     if (b) btnBg = getComputedStyle(b).backgroundColor;
                 } catch (e) {}
-                d.textContent = 'v1.0.17\nUA: ' + (navigator.userAgent || '') +
+                d.textContent = 'v1.0.18\nUA: ' + (navigator.userAgent || '') +
                     '\nViewport: ' + window.innerWidth + 'x' + window.innerHeight +
                     ' dpr' + (window.devicePixelRatio || 1) +
                     '\nCSSvar(--accent): ' + cssOk +
@@ -1968,6 +1968,9 @@
         grid-template-rows: minmax(0, 1fr) 96px;
         height: 100%;
         overflow: hidden;
+        /* 车机左侧常驻系统按钮条，整块界面右移避让 */
+        padding-left: 96px;
+        box-sizing: border-box;
     }
     .tablet-mode .tablet-rail {
         display: flex; flex-direction: column;
@@ -2032,6 +2035,14 @@
     .tablet-mode .lib-title { font-size: 17px; }
     .tablet-mode .home-sec-title { font-size: 22px; }
 
+    /* 进度条 / 音量条：加高触摸热区，便于滑动 */
+    .progress-track, .volume-track { position: relative; }
+    .progress-track::before, .volume-track::before {
+        content: ''; position: absolute; left: -4px; right: -4px; top: -12px; bottom: -12px;
+        background: transparent;
+    }
+    .tablet-mode .progress-track::before { top: -16px; bottom: -16px; }
+
     /* 底部选择面板：车机上居中限宽 */
     .tablet-mode .pick-sheet { width: 700px; max-width: 92vw; margin: 0 auto 18px; border-radius: 22px; }
     .tablet-mode .ss-sheet { width: 760px; max-width: 94vw; margin: 0 auto 18px; border-radius: 22px; }
@@ -2040,22 +2051,34 @@
     .tablet-mode .settings-page > * { max-width: 880px; margin-left: auto; margin-right: auto; }
 
     /* 播放页：左信息 / 右歌词 双栏 */
+    /* 歌词页：车机上取消整页位移与模糊底（省算力，不再卡顿） */
+    .tablet-mode .lyrics-overlay {
+        background: linear-gradient(160deg, #1a1622 0%, #0d0b12 62%);
+        transition: opacity .14s linear;
+        will-change: auto;
+    }
+    .tablet-mode .lyrics-backdrop { display: none; }
     .tablet-mode .lyrics-panel {
         display: grid;
         box-sizing: border-box;
+        padding: 0 0 0 140px;
+        overflow: hidden;
         grid-template-columns: minmax(300px, 31%) minmax(0, 1fr);
-        grid-template-rows: auto 1fr auto;
+        grid-template-rows: auto minmax(0, 1fr) auto;
         grid-template-areas: "head lyr" "cover lyr" "foot lyr";
         column-gap: 40px;
         width: 100%; max-width: none;
         height: 100%;
         padding: var(--sbh) 44px var(--sbn);
     }
-    .tablet-mode .lyrics-cover { display: block; grid-area: cover; width: 100%; max-width: 330px; height: 330px; object-fit: cover; border-radius: 22px; justify-self: start; align-self: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); margin: 10px 0; }
-    .tablet-mode .lyrics-panel-header { grid-area: head; padding: 30px 0 0; justify-content: flex-start; }
+    .tablet-mode .lyrics-cover { display: block; grid-area: cover; width: 100%; max-width: 300px; height: 300px; object-fit: cover; border-radius: 22px; justify-self: start; align-self: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); margin: 10px 0; }
+    .tablet-mode .lyrics-panel-header { grid-area: head; padding: calc(var(--sbh) + 20px) 0 0; justify-content: flex-start; }
     .tablet-mode .lyrics-panel-header::before { top: 6px; width: 54px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.34); }
     .tablet-mode .lyrics-panel-content { grid-area: lyr; max-width: none; padding: 84px 10px 28px; }
-    .tablet-mode .lyrics-footer { grid-area: foot; align-self: end; padding: 0 0 16px; }
+    .tablet-mode .lyrics-footer { grid-area: foot; align-self: end; padding: 0 0 calc(var(--sbn) + 12px); }
+    .tablet-mode .lc-spectrum { display: none; }
+    .tablet-mode .lc-label { margin-bottom: 2px; }
+    .tablet-mode .lc-times { margin-top: 2px; }
     .tablet-mode .lyrics-title { font-size: 25px; }
     .tablet-mode .lyrics-artist { font-size: 15px; margin-top: 4px; }
     .tablet-mode .lc-times { font-size: 13px; }
@@ -2103,7 +2126,7 @@
             <div class="login-error" id="login-error"></div>
         </form>
     </div>
-    <div class="login-foot" id="login-foot">v1.0.17</div>
+    <div class="login-foot" id="login-foot">v1.0.18</div>
 </div>
 
 <!-- ===== 主应用 ===== -->
@@ -2874,6 +2897,7 @@ const Player = {
         this.audio.addEventListener('error', () => { console.error('Audio error'); this.next(); });
         this.initLyricsTap();
         this.initLyricsSwipe();
+        this.initSliders();
         LyricsStyle.load();
         this.applySettings();
 
@@ -3526,16 +3550,87 @@ const Player = {
     },
 
     seek(event) {
-        const track = document.getElementById('progress-track');
+        this.seekToPercent(this.percentFromEvent('progress-track', event), true);
+    },
+
+    // 统一把触摸/鼠标位置换算成 0~1
+    percentFromEvent(trackId, event) {
+        const track = document.getElementById(trackId);
+        if (!track) return 0;
         const rect = track.getBoundingClientRect();
-        let percent = (event.clientX - rect.left) / rect.width;
-        percent = Math.max(0, Math.min(1, percent));
-        const dur = this.audio.duration;
-        if (dur && isFinite(dur) && dur > 0) {
+        const clientX = event.touches && event.touches.length
+            ? event.touches[0].clientX
+            : (event.changedTouches && event.changedTouches.length ? event.changedTouches[0].clientX : event.clientX);
+        if (!rect.width) return 0;
+        return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    },
+
+    // commit=false 时只做视觉预览，松手才真正跳转（弱芯片上更顺）
+    seekToPercent(percent, commit) {
+        const fill = document.getElementById('progress-fill');
+        const cur = document.getElementById('current-time');
+        const dur = (this.audio && isFinite(this.audio.duration)) ? this.audio.duration : 0;
+        if (fill) fill.style.width = (percent * 100) + '%';
+        const lcFill = document.getElementById('lc-fill');
+        if (lcFill) lcFill.style.width = (percent * 100) + '%';
+        if (cur && dur > 0) cur.textContent = formatTime(percent * dur);
+        if (commit && dur > 0) {
+            this._seeking = false;
             this.audio.currentTime = percent * dur;
             this.updateProgress();
             this.updateLyrics();
         }
+    },
+
+    // 进度条 / 音量条：按住拖动即跟随，替代原来的单击
+    initSliders() {
+        const bind = (trackId, onMove, onEnd) => {
+            const el = document.getElementById(trackId);
+            if (!el || el._sliderBound) return;
+            el._sliderBound = true;
+            let dragging = false;
+            const move = (e) => {
+                if (!dragging) return;
+                onMove(this.percentFromEvent(trackId, e));
+                if (e.cancelable) e.preventDefault();
+            };
+            const end = (e) => {
+                if (!dragging) return;
+                dragging = false;
+                onEnd(this.percentFromEvent(trackId, e));
+            };
+            const start = (e) => {
+                dragging = true;
+                onMove(this.percentFromEvent(trackId, e));
+                if (e.cancelable) e.preventDefault();
+            };
+            el.addEventListener('touchstart', start, { passive: false });
+            el.addEventListener('touchmove', move, { passive: false });
+            el.addEventListener('touchend', end);
+            el.addEventListener('touchcancel', end);
+            el.addEventListener('mousedown', (e) => { start(e); e.preventDefault(); });
+            window.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', end);
+        };
+        bind('progress-track', (p) => {
+            this._seeking = true;
+            this.seekToPercent(p, false);
+        }, (p) => {
+            this.seekToPercent(p, true);
+        });
+        bind('volume-track', (p) => {
+            this.setVolumePercent(p);
+        }, (p) => {
+            this.setVolumePercent(p);
+        });
+    },
+
+    setVolumePercent(percent) {
+        percent = Math.max(0, Math.min(1, percent));
+        this.volume = percent;
+        if (this.audio) this.audio.volume = percent;
+        const fill = document.getElementById('volume-fill');
+        if (fill) fill.style.width = (percent * 100) + '%';
     },
 
     // 歌词页底部控制条的进度点击（与主播放器共用同一个 audio 元素）
@@ -3554,12 +3649,7 @@ const Player = {
     },
 
     setVolume(event) {
-        const track = document.getElementById('volume-track');
-        const rect = track.getBoundingClientRect();
-        const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-        this.volume = percent;
-        this.audio.volume = percent;
-        document.getElementById('volume-fill').style.width = (percent * 100) + '%';
+        this.setVolumePercent(this.percentFromEvent('volume-track', event));
     },
 
     toggleShuffle() {
@@ -3679,6 +3769,7 @@ const Player = {
     },
 
     updateProgress() {
+        if (this._seeking) return;
         const cur = this.audio.currentTime || 0;
         const dur = this.audio.duration || 0;
         const percent = dur > 0 ? (cur / dur) * 100 : 0;
@@ -4899,7 +4990,7 @@ const App = {
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
                     ${rowInfo('运行内核', escapeHtml(App.webviewInfo()))}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.17')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.18')}
                 `)}
             </div>
         `;
@@ -5235,7 +5326,7 @@ try {
     var ua = navigator.userAgent || '';
     var cm = ua.match(/Chrome\/([\d.]+)/);
     var foot = document.getElementById('login-foot');
-    if (foot) foot.textContent = 'v1.0.17 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
+    if (foot) foot.textContent = 'v1.0.18 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
 } catch (e) { console.error(e); }
 try { Player.init(); } catch (e) { console.error(e); showFatal('Player.init', e); }
 try { AppEnv.init(); } catch (e) { console.error(e); showFatal('AppEnv.init', e); }
