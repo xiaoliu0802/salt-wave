@@ -7,6 +7,31 @@
     <title>Salt Wave - Navidrome 播放器</title>
     <!-- CryptoJS for MD5 token authentication (本地文件，离线/APK 可用) -->
     <script src="libs/crypto-js.min.js"></script>
+    <script>
+    (function () {
+        function fatal(tag, msg) {
+            if (window.__appShown) { try { console.error('[fatal]', tag, msg); } catch (e) {} return; }
+            try {
+                var old = document.getElementById('boot-fatal');
+                if (old && old.parentNode) old.parentNode.removeChild(old);
+                var d = document.createElement('div');
+                d.id = 'boot-fatal';
+                d.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#b00020;color:#fff;' +
+                    'font:12px/1.5 monospace;padding:10px 12px;max-height:45%;overflow:auto;white-space:pre-wrap';
+                d.textContent = '[启动错误] ' + tag + '\n' + msg;
+                (document.body || document.documentElement).appendChild(d);
+            } catch (e) {}
+        }
+        window.__bootFatal = fatal;
+        window.addEventListener('error', function (e) {
+            fatal('脚本错误', (e && (e.message || (e.error && e.error.message))) || 'unknown');
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+            var r = e && e.reason;
+            fatal('异步错误', (r && (r.stack || r.message)) || String(r));
+        });
+    })();
+    </script>
     <style>
         /* ===== CSS 变量 ===== */
         :root {
@@ -114,6 +139,11 @@
         }
         .login-btn:active { transform: scale(.98); }
         .login-btn:disabled { opacity: .5; }
+        .login-foot {
+            position: fixed; left: 0; right: 0; bottom: calc(8px + var(--sbn));
+            text-align: center; font-size: 11px; color: var(--text-muted);
+            z-index: 1001; pointer-events: none;
+        }
         .login-error {
             color: var(--danger);
             font-size: 13px;
@@ -1899,10 +1929,11 @@
                 <label>密码</label>
                 <input type="password" id="password" placeholder="密码" autocomplete="current-password">
             </div>
-            <button type="submit" class="login-btn" id="login-btn">连接</button>
+            <button type="submit" class="login-btn" id="login-btn" onclick="if(window.App && App.login && !this.disabled){App.login();}">连接</button>
             <div class="login-error" id="login-error"></div>
         </form>
     </div>
+    <div class="login-foot" id="login-foot"></div>
 </div>
 
 <!-- ===== 主应用 ===== -->
@@ -2253,15 +2284,22 @@ const SubsonicAPI = {
     async _call(method, params = {}) {
         const url = `${this.serverUrl}/rest/${method}?${this._buildParams(params)}`;
         let res;
+        let timerId = null;
+        const timeout = new Promise((_, reject) => {
+            timerId = setTimeout(() => { const err = new Error('连接超时'); err.__timeout = true; reject(err); }, 15000);
+        });
         try {
-            res = await fetch(url);
+            res = await Promise.race([fetch(url), timeout]);
         } catch (e) {
+            if (e && e.__timeout) throw new Error('连接超时，请检查车机网络或服务器地址');
             throw new Error('无法连接服务器，请检查地址是否正确');
+        } finally {
+            if (timerId) clearTimeout(timerId);
         }
         if (!res.ok) throw new Error(`服务器返回错误 ${res.status}`);
         const data = await res.json();
         if (data['subsonic-response'].status === 'failed') {
-            throw new Error(data['subsonic-response'].error?.message || 'API错误');
+            throw new Error(((data['subsonic-response'].error || {}).message) || 'API错误');
         }
         return data['subsonic-response'];
     },
@@ -2272,7 +2310,7 @@ const SubsonicAPI = {
 
     async getAlbumList(type = 'newest', size = 24, offset = 0) {
         const resp = await this._call('getAlbumList2', { type, size, offset });
-        return resp.albumList2?.album || [];
+        return (resp.albumList2 && resp.albumList2.album) || [];
     },
 
     // 分页取全部专辑（用于统计与封面拼贴）
@@ -2289,23 +2327,23 @@ const SubsonicAPI = {
 
     async getStarred2() {
         const resp = await this._call('getStarred2', {});
-        return resp.starred2?.song || [];
+        return (resp.starred2 && resp.starred2.song) || [];
     },
 
     async getGenres() {
         const resp = await this._call('getGenres', {});
-        return resp.genres?.genre || [];
+        return (resp.genres && resp.genres.genre) || [];
     },
 
     async getSongsByGenre(genre, count = 100, offset = 0) {
         const resp = await this._call('getSongsByGenre', { genre, count, offset });
-        return resp.songsByGenre?.song || [];
+        return (resp.songsByGenre && resp.songsByGenre.song) || [];
     },
 
     async getArtists() {
         const resp = await this._call('getArtists');
         const artists = [];
-        const indexes = resp.artists?.index || [];
+        const indexes = (resp.artists && resp.artists.index) || [];
         for (const idx of indexes) {
             for (const artist of (idx.artist || [])) {
                 artists.push(artist);
@@ -2326,7 +2364,7 @@ const SubsonicAPI = {
 
     async getRandomSongs(size = 50) {
         const resp = await this._call('getRandomSongs', { size });
-        return resp.randomSongs?.song || [];
+        return (resp.randomSongs && resp.randomSongs.song) || [];
     },
 
     // 全库歌曲：Subsonic 没有“列出全部歌曲”的接口，
@@ -2351,7 +2389,7 @@ const SubsonicAPI = {
                 const album = albums[cursor++];
                 try {
                     const detail = await this.getAlbum(album.id);
-                    (detail?.song || []).forEach((song) => {
+                    ((detail && detail.song) || []).forEach((song) => {
                         songs.push({
                             id: song.id,
                             title: song.title,
@@ -2387,7 +2425,7 @@ const SubsonicAPI = {
 
     async getPlaylists() {
         const resp = await this._call('getPlaylists');
-        return resp.playlists?.playlist || [];
+        return (resp.playlists && resp.playlists.playlist) || [];
     },
 
     async getPlaylist(id) {
@@ -2472,7 +2510,7 @@ const SubsonicAPI = {
         // Fallback: legacy getLyrics by artist/title (returns plain text, no timestamps)
         try {
             const resp = await this._call('getLyrics', { artist: artist || '', title: title || '' });
-            const text = resp.lyrics?.value || resp.lyrics?._ || '';
+            const text = (resp.lyrics && (resp.lyrics.value || resp.lyrics._)) || '';
             if (text) return { synced: false, text };
         } catch (e) {
             // No lyrics available
@@ -3722,6 +3760,7 @@ const App = {
         const password = document.getElementById('password').value;
         const errorEl = document.getElementById('login-error');
         const btn = document.getElementById('login-btn');
+        if (btn.disabled) return;
 
         if (!serverUrlRaw || !username || !password) {
             errorEl.textContent = '请填写所有字段';
@@ -3737,7 +3776,8 @@ const App = {
 
         btn.disabled = true;
         btn.textContent = '连接中...';
-        errorEl.textContent = '';
+        errorEl.style.color = 'var(--text-dim)';
+        errorEl.textContent = '正在连接服务器…';
 
         try {
             SubsonicAPI.init(serverUrl, username, password);
@@ -3750,13 +3790,15 @@ const App = {
             this.showApp();
             this.navigate('home');
         } catch (e) {
+            errorEl.style.color = '';
             let msg = e.message || '';
             if (msg.includes('Failed to fetch') || msg.includes('无法连接')) {
                 errorEl.textContent = '无法连接服务器，请检查地址是否正确，确保服务器已开启 CORS';
             } else if (msg.includes('Wrong username or password') || msg.includes('401') || msg.includes('403')) {
                 errorEl.textContent = '用户名或密码错误';
             } else {
-                errorEl.textContent = '连接失败：' + msg;
+                errorEl.style.color = '';
+            errorEl.textContent = '连接失败：' + msg;
             }
             btn.disabled = false;
             btn.textContent = '连接';
@@ -3777,6 +3819,7 @@ const App = {
     },
 
     showApp() {
+        window.__appShown = true;
         document.getElementById('login-view').style.display = 'none';
         document.getElementById('app').classList.add('active');
     },
@@ -4671,7 +4714,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.14')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.15')}
                 `)}
             </div>
         `;
@@ -5003,6 +5046,12 @@ document.getElementById('playlist-name-input').addEventListener('keydown', (e) =
     if (e.key === 'Escape') App.closePlaylistModal();
 });
 
+try {
+    var ua = navigator.userAgent || '';
+    var cm = ua.match(/Chrome\/([\d.]+)/);
+    var foot = document.getElementById('login-foot');
+    if (foot) foot.textContent = 'v1.0.15 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
+} catch (e) { console.error(e); }
 try { Player.init(); } catch (e) { console.error(e); showFatal('Player.init', e); }
 try { AppEnv.init(); } catch (e) { console.error(e); showFatal('AppEnv.init', e); }
 try { App.watchSystemTheme(); } catch (e) { console.error(e); }
