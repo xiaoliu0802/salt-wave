@@ -1861,7 +1861,25 @@
             .home-grid { gap: 10px; }
             .lib-card { padding: 12px; gap: 10px; border-radius: 20px; }
         }
-    </style>
+    /* ===== 平板 / 车机模式（宽屏横屏） ===== */        .tablet-rail { display: none; }        .tablet-mode #app.active {
+            display: grid;            grid-template-columns: 104px minmax(0, 1fr);            grid-template-rows: minmax(0, 1fr) auto;        }        .tablet-mode .tablet-rail {
+            display: flex;            flex-direction: column;            grid-column: 1;            grid-row: 1;            gap: 6px;            padding: calc(10px + var(--sbh)) 8px 10px;            background: var(--bg-card);            border-right: 1px solid var(--border);            overflow-y: auto;            -webkit-overflow-scrolling: touch;        }        .tablet-mode .rail-item {
+            display: flex;            flex-direction: column;            align-items: center;            justify-content: center;            gap: 5px;            padding: 9px 2px;            border-radius: 14px;            color: var(--text-dim);            font-size: 11px;            font-weight: 600;            letter-spacing: .3px;            transition: background .15s, color .15s;            -webkit-tap-highlight-color: transparent;        }        .tablet-mode .rail-item svg { width: 23px; height: 23px; }        .tablet-mode .rail-item:active { background: rgba(255,255,255,.07); }        .tablet-mode .rail-item.active { background: rgba(255,127,118,.16); color: var(--accent-light); }        .tablet-mode .rail-spacer { flex: 1 1 auto; min-height: 10px; }        .tablet-mode .main-container { grid-column: 2; grid-row: 1; }        .tablet-mode .page-content { width: 100%; max-width: 1360px; margin: 0 auto; padding-left: 34px; padding-right: 34px; }        .tablet-mode .top-bar { padding-left: 34px; padding-right: 34px; }        .tablet-mode .player-bar {
+            grid-column: 1 / -1;            grid-row: 2;            --player-height: 92px;            padding-left: 26px;            padding-right: 26px;        }        .tablet-mode .player-cover { width: 58px; height: 58px; }        .tablet-mode .play-btn { width: 58px; height: 58px; }        .tablet-mode .play-btn svg { width: 30px; height: 30px; }        .tablet-mode .ctrl-btn { width: 52px; height: 52px; }        .tablet-mode .ctrl-btn svg { width: 24px; height: 24px; }        .tablet-mode .progress-bar { max-width: 860px; }        .tablet-mode .player-title { font-size: 16px; }        
+        /* 首页：居中限宽 */        .tablet-mode .home {
+            max-width: 1240px;            margin: 0 auto;            padding-left: 34px;            padding-right: 34px;            padding-top: 78px !important;        }        
+        /* 播放页：左信息 / 右歌词 双栏 */        .tablet-mode .lyrics-panel {
+            display: grid;            grid-template-columns: minmax(300px, 31%) minmax(0, 1fr);            grid-template-rows: auto 1fr auto;            grid-template-areas: "head lyr" "cover lyr" "foot lyr";            column-gap: 40px;            height: 100%;            padding: var(--sbh) 44px var(--sbn);        }        .lyrics-close { display: none; }
+        .tablet-mode .lyrics-panel { position: relative; }
+        .tablet-mode .lyrics-close { display: flex; position: absolute; top: calc(var(--sbh) + 18px); right: 40px; width: 46px; height: 46px; border-radius: 50%; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); color: #fff; }
+        .tablet-mode .lyrics-close svg { width: 22px; height: 22px; }
+        .lyrics-cover { display: none; }
+        .tablet-mode .lyrics-cover { grid-area: cover; display: block; width: 100%; max-width: 330px; aspect-ratio: 1; object-fit: cover; border-radius: 22px; justify-self: start; align-self: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); margin: 10px 0; }
+        .tablet-mode .lyrics-panel-header { grid-area: head; padding: 26px 0 0; justify-content: flex-start; }        .tablet-mode .lyrics-panel-header::before { display: none; }        .tablet-mode .lyrics-panel-content {
+            grid-area: lyr;            max-width: none;            padding: 84px 10px 28px;        }        .tablet-mode .lyrics-footer { grid-area: foot; align-self: end; padding: 0 0 16px; }        .tablet-mode .lyrics-title { font-size: 25px; }        .tablet-mode .lyrics-artist { font-size: 15px; margin-top: 4px; }        .tablet-mode .lc-times { font-size: 13px; }        .tablet-mode .lc-btn { width: 56px; height: 56px; }        .tablet-mode .lc-play { width: 68px; height: 68px; }        .tablet-mode .lc-play svg { width: 34px; height: 34px; }        .tablet-mode .lc-buttons { gap: 26px; margin-top: 6px; }        .tablet-mode .lc-track { height: 26px; }        .tablet-mode .lc-actions { margin-top: 2px; }        
+        /* 列表行加大，便于车上触控 */        .tablet-mode .song-row { padding-top: 15px; padding-bottom: 15px; }        .tablet-mode .card, .tablet-mode .album-card, .tablet-mode .lib-card { border-radius: 16px; }        
+        /* 浅色外壳下的侧栏配色 */        .tablet-mode #app.home-mode .tablet-rail {
+            background: #fff;            border-right: 1px solid rgba(0,0,0,.07);        }        .tablet-mode #app.home-mode .rail-item { color: #77777d; }        .tablet-mode #app.home-mode .rail-item.active { background: rgba(226,96,90,.12); color: #e2605a; }        .tablet-mode #app.home-mode.dark-ui .tablet-rail { background: #17171d; border-right-color: rgba(255,255,255,.08); }        .tablet-mode #app.home-mode.dark-ui .rail-item { color: #8d8d97; }        .tablet-mode #app.home-mode.dark-ui .rail-item.active { background: rgba(255,127,118,.16); color: #ff7f76; }    </style>
 </head>
 <body>
 
@@ -1891,7 +1909,43 @@
 
 <!-- ===== 主应用 ===== -->
 <div id="app">
-    <div class="main-container">
+    <!-- 平板 / 车机模式左侧导航（仅在宽屏横屏时显示） -->
+    <div class="tablet-rail" id="tablet-rail">
+        <button class="rail-item" data-view="home" onclick="App.navigate('home')" title="首页">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+            <span>首页</span>
+        </button>
+        <button class="rail-item" data-view="songs" onclick="App.navigate('songs')" title="歌曲">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="7" cy="18" r="2.6"/><circle cx="18" cy="15.5" r="2.6"/><line x1="9.6" y1="18" x2="9.6" y2="6"/><line x1="20.6" y1="15.5" x2="20.6" y2="4"/><path d="M9.6 6 20.6 4"/></svg>
+            <span>歌曲</span>
+        </button>
+        <button class="rail-item" data-view="albums" onclick="App.navigate('albums')" title="专辑">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4"/></svg>
+            <span>专辑</span>
+        </button>
+        <button class="rail-item" data-view="artists" onclick="App.navigate('artists')" title="艺人">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1.6-4 4.2-6 7.5-6s5.9 2 7.5 6"/></svg>
+            <span>艺人</span>
+        </button>
+        <button class="rail-item" data-view="playlists" onclick="App.navigate('playlists')" title="歌单">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="4" cy="18" r="1.3"/></svg>
+            <span>歌单</span>
+        </button>
+        <button class="rail-item" data-view="starred" onclick="App.navigate('starred')" title="收藏">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 20s-7-4.5-7-9.4A3.9 3.9 0 0 1 12 7a3.9 3.9 0 0 1 7 3.6C19 15.5 12 20 12 20z"/></svg>
+            <span>收藏</span>
+        </button>
+        <button class="rail-item" data-view="search" onclick="App.navigate('search')" title="搜索">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="7.4"/><line x1="21" y1="21" x2="16.4" y2="16.4"/></svg>
+            <span>搜索</span>
+        </button>
+        <div class="rail-spacer"></div>
+        <button class="rail-item" data-view="settings" onclick="App.navigate('settings')" title="设置">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2.8 12h2.6M18.6 12h2.6M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+            <span>设置</span>
+        </button>
+    </div>
+<div class="main-container">
 
         <!-- 内容区 -->
         <div class="content-area">
@@ -1968,6 +2022,10 @@
                 <div class="lyrics-artist" id="lyrics-artist"></div>
             </div>
         </div>
+        <button class="lyrics-close" id="lyrics-close" onclick="Player.closeLyricsPanel()" title="收起歌词">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+        <img class="lyrics-cover" id="lyrics-cover" alt="" />
         <div class="lyrics-panel-content" id="lyrics-panel-content">
             <div class="lyrics-empty">点击歌曲开始播放后显示歌词</div>
         </div>
@@ -2454,7 +2512,8 @@ const Settings = {
         autoPlayOnStart: false,
         mixWithOthers: true,
         // 外观
-        theme: 'system'
+        theme: 'system',
+        tabletMode: 'auto'
     },
 
     load() {
@@ -2500,6 +2559,13 @@ const Settings = {
         this.state.theme = v;
         this.save();
         App.applyTheme();
+        App.renderSettings();
+    },
+
+    setTabletMode(v) {
+        this.state.tabletMode = v;
+        this.save();
+        App.applyTabletMode();
         App.renderSettings();
     },
 
@@ -2901,6 +2967,12 @@ const Player = {
         if (backdrop) {
             const coverUrl = SubsonicAPI.getCoverArtUrl(song.coverArt);
             backdrop.style.backgroundImage = coverUrl ? `url("${coverUrl}")` : 'none';
+        }
+        const coverEl = document.getElementById('lyrics-cover');
+        if (coverEl) {
+            const artwork = SubsonicAPI.getCoverArtUrl(song.coverArt, 500);
+            coverEl.src = artwork || '';
+            coverEl.style.display = artwork ? '' : 'none';
         }
         const sourceEl = document.getElementById('lc-source');
         if (sourceEl) sourceEl.textContent = '···';
@@ -3751,6 +3823,40 @@ const App = {
             case 'genres': this.renderGenres(); break;
             case 'search': this.focusSearch(); break;
         }
+        this.syncRail();
+    },
+
+    // 平板 / 车机布局：宽屏横屏自动启用，也可在设置里强制开关
+    applyTabletMode() {
+        const mode = Settings.get('tabletMode') || 'auto';
+        const w = window.innerWidth || document.documentElement.clientWidth || 0;
+        const h = window.innerHeight || document.documentElement.clientHeight || 0;
+        const wide = w >= 900 && w > h * 1.15;
+        const on = mode === 'on' || (mode === 'auto' && wide);
+        document.documentElement.classList.toggle('tablet-mode', on);
+        document.body.classList.toggle('tablet-mode', on);
+        this.syncRail();
+        if (!this._tabletBound) {
+            this._tabletBound = true;
+            let timer = null;
+            const relayout = () => {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => this.applyTabletMode(), 120);
+            };
+            window.addEventListener('resize', relayout);
+            window.addEventListener('orientationchange', relayout);
+        }
+    },
+
+    isTabletMode() {
+        return document.documentElement.classList.contains('tablet-mode');
+    },
+
+    syncRail() {
+        const view = this.currentView || 'home';
+        document.querySelectorAll('.rail-item').forEach((el) => {
+            el.classList.toggle('active', el.dataset.view === view);
+        });
     },
 
     // 当前浅色壳是否用浅色（主题 = 浅色 / 跟随系统）
@@ -4530,7 +4636,7 @@ const App = {
                 </div>
 
                 ${group('外观', `
-                    ${rowNav('主题', ({ system: '跟随系统', light: '浅色', dark: '深色' })[s.theme || 'system'], "App.openPicker('主题', [{value:'system',label:'跟随系统'},{value:'light',label:'浅色'},{value:'dark',label:'深色'}], Settings.get('theme') || 'system', function(v){ Settings.setTheme(v); })")}
+                    ${rowNav('主题', ({ system: '跟随系统', light: '浅色', dark: '深色' })[s.theme || 'system'], "App.openPicker('主题', [{value:'system',label:'跟随系统'},{value:'light',label:'浅色'},{value:'dark',label:'深色'}], Settings.get('theme') || 'system', function(v){ Settings.setTheme(v); })")}                    ${rowNav('平板 / 车机布局', ({ auto: '自动', on: '始终开启', off: '关闭' })[s.tabletMode || 'auto'], "App.openPicker('平板 / 车机布局', [{value:'auto',label:'自动（宽屏自动切换）'},{value:'on',label:'始终开启'},{value:'off',label:'关闭'}], Settings.get('tabletMode') || 'auto', function(v){ Settings.setTabletMode(v); })", '横屏宽屏时左侧出现导航栏、播放页分两栏')}
                 `)}
 
                 ${group('网络与音质', `
@@ -4570,7 +4676,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.12')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.13')}
                 `)}
             </div>
         `;
@@ -4709,6 +4815,9 @@ const AppEnv = {
 
         // 阻止 iOS/Android 双击缩放与下拉回弹
         document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+        // 平板 / 车机布局（宽屏横屏自动切换）
+        App.applyTabletMode();
     },
 
     // 左边缘右滑返回：逐层收起（播放列表/歌词设置/歌词页/侧边栏/上一个视图）
