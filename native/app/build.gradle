@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.saltwave.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.saltwave.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 11
+        versionName '1.1-native'
+    }
+
+    signingConfigs {
+        // 公开的开发用签名（非敏感），保证每次 CI 产出的 APK 签名一致，可以直接覆盖安装。
+        dev {
+            storeFile file('../keystore/saltwave.jks')
+            storePassword 'android'
+            keyAlias 'saltwave'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.dev
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.dev
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
