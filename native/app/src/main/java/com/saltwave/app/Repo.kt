@@ -19,11 +19,18 @@ object Repo {
 
     private val songCache = HashMap<String, List<Track>>()
 
+    private var albumOffset = 0
+    private var albumsDone = false
+    private var loadingMore = false
+
     fun reset() {
         albums.clear()
         playlists.clear()
         starred.clear()
         songCache.clear()
+        albumOffset = 0
+        albumsDone = false
+        loadingMore = false
         loaded = false
         loading = false
     }
@@ -33,11 +40,13 @@ object Repo {
         if (loading) return
         loading = true
         try {
-            val a = client.albums()
+            val a = client.albums(PAGE)
             val p = client.playlists()
             val s = client.starred()
             albums.clear()
             albums.addAll(a)
+            albumOffset = a.size
+            albumsDone = a.size < PAGE
             playlists.clear()
             playlists.addAll(p)
             starred.clear()
@@ -47,6 +56,27 @@ object Repo {
             loading = false
         }
     }
+
+    /** 滚到底自动续页，一次 100 张专辑。 */
+    suspend fun loadMoreAlbums() {
+        val client = api ?: return
+        if (loadingMore || albumsDone || demo) return
+        loadingMore = true
+        try {
+            val more = client.albums(PAGE, albumOffset)
+            if (more.isNotEmpty()) {
+                albums.addAll(more)
+                albumOffset += more.size
+            }
+            if (more.size < PAGE) albumsDone = true
+        } catch (e: Exception) {
+            albumsDone = true
+        } finally {
+            loadingMore = false
+        }
+    }
+
+    private const val PAGE = 100
 
     fun cachedSongs(playlist: Boolean, id: String): List<Track>? = songCache[key(playlist, id)]
 
@@ -69,6 +99,7 @@ object Repo {
 
     fun fillDemo() {
         reset()
+        api = null
         demo = true
         loaded = true
         val names = listOf("夜航", "墨", "黄昏以后", "潮汐线", "黑点", "雾中来信")

@@ -3,6 +3,7 @@ package com.saltwave.app
 import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -14,16 +15,19 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        AppSettings.init(applicationContext)
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .build(),
-                true,
+                AppSettings.focusResume,
             )
-            .setHandleAudioBecomingNoisy(true)
+            .setHandleAudioBecomingNoisy(AppSettings.noisyPause)
             .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setSeekBackIncrementMs(AppSettings.seekStep * 1000L)
+            .setSeekForwardIncrementMs(AppSettings.seekStep * 1000L)
             .build()
 
         session = MediaSession.Builder(this, player).build()
@@ -36,7 +40,7 @@ class PlaybackService : MediaSessionService() {
         if (player == null ||
             !player.playWhenReady ||
             player.mediaItemCount == 0 ||
-            player.playbackState == androidx.media3.common.Player.STATE_ENDED
+            player.playbackState == Player.STATE_ENDED
         ) {
             stopSelf()
         }

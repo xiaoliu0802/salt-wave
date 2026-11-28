@@ -28,12 +28,12 @@ class Subsonic(server: String, private val user: String, pass: String) {
         io { call("ping") }
     }
 
-    suspend fun albums(limit: Int = 100): List<Album> = io {
+    suspend fun albums(limit: Int = 100, offset: Int = 0): List<Album> = io {
         val r = call(
             "getAlbumList2",
             "type" to "alphabeticalByName",
             "size" to limit.toString(),
-            "offset" to "0",
+            "offset" to offset.toString(),
         )
         val arr = r.optJSONObject("albumList2")?.optJSONArray("album") ?: JSONArray()
         (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let(::toAlbum) }
@@ -71,7 +71,41 @@ class Subsonic(server: String, private val user: String, pass: String) {
         (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let(::toTrack) }
     }
 
-    fun streamUrl(track: Track): String = build("stream", "id" to track.id)
+    /** 先试 OpenSubsonic 的结构化歌词，再退回 getLyrics 的纯文本/LRC。 */
+    suspend fun lyrics(id: String, artist: String, title: String): List<LyricLine> = io {
+        val structured = runCatching {
+            val r = call("getLyricsBySongId", "id" to id)
+            val list = r.optJSONObject("lyricsList")?.optJSONArray("structuredLyrics")
+            val lines = list?.optJSONObject(0)?.optJSONArray("line")
+            if (lines == null || lines.length() == 0) {
+                emptyList()
+            } else {
+                (0 until lines.length()).mapNotNull { i ->
+                    val o = lines.optJSONObject(i) ?: return@mapNotNull null
+                    val text = o.optString("value").ifEmpty { o.optString("text") }
+                    LyricLine(o.optLong("start"), text)
+                }.filter { it.text.isNotBlank() }
+            }
+        }.getOrDefault(emptyList())
+        if (structured.isNotEmpty()) return@io structured
+
+        val plain = runCatching {
+            call("getLyrics", "artist" to artist, "title" to title)
+                .optJSONObject("lyrics")?.optString("value").orEmpty()
+        }.getOrDefault("")
+        if (plain.isBlank()) {
+            emptyList()
+        } else {
+            parseLrc(plain).ifEmpty { listOf(LyricLine(0L, plain.trim())) }
+        }
+    }
+
+    fun streamUrl(track: Track): String {
+        val extra = ArrayList<Pair<String, String?>>()
+        if (AppSettings.bitrate > 0) extra.add("maxBitRate" to AppSettings.bitrate.toString())
+        if (AppSettings.forceMp3) extra.add("format" to "mp3")
+        return build("stream", "id" to track.id, *extra.toTypedArray())
+    }
 
     fun coverUrl(coverId: String?, size: Int = 480): String? =
         if (coverId.isNullOrEmpty()) null else build("getCoverArt", "id" to coverId, "size" to size.toString())
@@ -95,7 +129,7 @@ class Subsonic(server: String, private val user: String, pass: String) {
         val conn = URL(build(method, *kv)).openConnection() as HttpURLConnection
         conn.connectTimeout = 9000
         conn.readTimeout = 15000
-        conn.setRequestProperty("User-Agent", "SaltWave/1.2")
+        conn.setRequestProperty("User-Agent", "SaltWave/1.3")
         try {
             val code = conn.responseCode
             val stream = if (code >= 400) conn.errorStream else conn.inputStream
