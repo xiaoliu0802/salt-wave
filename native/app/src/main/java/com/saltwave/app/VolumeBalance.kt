@@ -10,12 +10,18 @@ import androidx.media3.exoplayer.ExoPlayer
 object VolumeBalance {
 
     private var effect: DynamicsProcessing? = null
+    private var session = 0
 
     fun apply(player: ExoPlayer, on: Boolean) {
+        if (!on) {
+            release()
+            return
+        }
+        val s = player.audioSessionId
+        // 音频会话是播起来之后才生成的，太早拿不到就等下次 READY 再挂
+        if (s == 0) return
+        if (effect != null && session == s) return
         release()
-        if (!on) return
-        val session = player.audioSessionId
-        if (session == 0) return
         try {
             val cfg = DynamicsProcessing.Config.Builder(
                 DynamicsProcessing.VARIANT_FAVOR_TIME_RESOLUTION,
@@ -25,14 +31,17 @@ object VolumeBalance {
                 false, 0,
                 true,
             ).build()
-            effect = DynamicsProcessing(0, session, cfg).also { it.enabled = true }
+            effect = DynamicsProcessing(0, s, cfg).also { it.enabled = true }
+            session = s
         } catch (t: Throwable) {
             effect = null
+            session = 0
         }
     }
 
     fun release() {
         runCatching { effect?.release() }
         effect = null
+        session = 0
     }
 }

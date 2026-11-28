@@ -68,6 +68,9 @@ class PlaybackService : MediaSessionService() {
                 playerRef?.volume = 1f
                 fadingOut = false
             }
+            // 音频会话到这时才有，音量平衡在这里补挂
+            val p = playerRef ?: return
+            if (AppSettings.balance) VolumeBalance.apply(p, true)
         }
     }
 
