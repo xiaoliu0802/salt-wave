@@ -52,7 +52,7 @@
                     var b = document.getElementById('login-btn');
                     if (b) btnBg = getComputedStyle(b).backgroundColor;
                 } catch (e) {}
-                d.textContent = 'v1.0.16\nUA: ' + (navigator.userAgent || '') +
+                d.textContent = 'v1.0.17\nUA: ' + (navigator.userAgent || '') +
                     '\nViewport: ' + window.innerWidth + 'x' + window.innerHeight +
                     ' dpr' + (window.devicePixelRatio || 1) +
                     '\nCSSvar(--accent): ' + cssOk +
@@ -391,7 +391,7 @@
         .album-cover img { width: 100%; height: 100%; object-fit: cover; }
         .album-cover .play-overlay {
             position: absolute;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
@@ -778,7 +778,7 @@
         /* ===== 模态框 ===== */
         .modal-overlay {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.6);
             display: none;
             align-items: center;
@@ -799,7 +799,7 @@
         /* ===== 歌词面板 ===== */
         .lyrics-overlay {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: #0d0b12;
             display: flex;
             flex-direction: column;
@@ -815,7 +815,7 @@
         /* 封面模糊底 */
         .lyrics-backdrop {
             position: absolute;
-            inset: -60px;
+            top: -60px; left: -60px; right: -60px; bottom: -60px;
             background-color: #171320;
             background-size: cover;
             background-position: center;
@@ -827,7 +827,7 @@
         .lyrics-backdrop::after {
             content: '';
             position: absolute;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: linear-gradient(180deg, rgba(10,8,14,.5) 0%, rgba(10,8,14,.68) 40%, rgba(10,8,14,.88) 100%);
         }
 
@@ -1103,7 +1103,7 @@
         /* ===== 歌词设置（点“词”徽标打开） ===== */
         .lyrics-settings-overlay {
             position: absolute;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             z-index: 3;
             display: flex;
             align-items: flex-end;
@@ -1242,7 +1242,7 @@
         /* ===== 播放列表（底部弹层） ===== */
         .queue-overlay {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             z-index: 430;
             display: flex;
             align-items: flex-end;
@@ -1376,7 +1376,7 @@
         /* ===== 遮罩 ===== */
         .sidebar-overlay {
             position: fixed;
-            inset: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.5);
             display: none;
             z-index: 99;
@@ -1580,7 +1580,7 @@
 
         /* ===== 服务状态弹窗 ===== */
         .svc-overlay {
-            position: fixed; inset: 0; z-index: 320;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 320;
             background: rgba(0,0,0,.45);
             backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
             display: flex; align-items: center; justify-content: center;
@@ -1635,7 +1635,7 @@
         .pl-row:active { background: rgba(255,255,255,.04); }
         .pl-cover { position: relative; width: 64px; height: 64px; flex: 0 0 64px; }
         .pl-cover .pl-layer {
-            position: absolute; inset: 0; border-radius: 14px; overflow: hidden;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 14px; overflow: hidden;
             background: linear-gradient(135deg,#2b2b4d,#1c1c32);
             box-shadow: 0 6px 16px rgba(0,0,0,.3);
         }
@@ -1811,7 +1811,7 @@
 
         /* ===== 选项弹窗（底部浮层） ===== */
         .pick-overlay {
-            position: fixed; inset: 0; z-index: 480;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 480;
             background: rgba(0,0,0,.42);
             display: flex; align-items: flex-end;
             backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
@@ -1855,7 +1855,7 @@
 
         /* ===== 歌曲操作面板（播放页 ⋯） ===== */
         .ss-overlay {
-            position: fixed; inset: 0; z-index: 465;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 465;
             background: rgba(0,0,0,.45);
             display: flex; align-items: flex-end;
             animation: pickIn .18s ease;
@@ -1915,7 +1915,7 @@
 
         /* 歌曲信息弹窗 */
         .si-overlay {
-            position: fixed; inset: 0; z-index: 475;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 475;
             background: rgba(0,0,0,.5);
             display: flex; align-items: center; justify-content: center;
             padding: 22px;
@@ -1951,23 +1951,133 @@
             .home-grid { gap: 10px; }
             .lib-card { padding: 12px; gap: 10px; border-radius: 20px; }
         }
-    /* ===== 平板 / 车机模式（宽屏横屏） ===== */        .tablet-rail { display: none; }        .tablet-mode #app.active {
-            display: grid;            grid-template-columns: 104px minmax(0, 1fr);            grid-template-rows: minmax(0, 1fr) auto;        }        .tablet-mode .tablet-rail {
-            display: flex;            flex-direction: column;            grid-column: 1;            grid-row: 1;            gap: 6px;            padding: calc(10px + var(--sbh)) 8px 10px;            background: var(--bg-card);            border-right: 1px solid var(--border);            overflow-y: auto;            -webkit-overflow-scrolling: touch;        }        .tablet-mode .rail-item {
-            display: flex;            flex-direction: column;            align-items: center;            justify-content: center;            gap: 5px;            padding: 9px 2px;            border-radius: 14px;            color: var(--text-dim);            font-size: 11px;            font-weight: 600;            letter-spacing: .3px;            transition: background .15s, color .15s;            -webkit-tap-highlight-color: transparent;        }        .tablet-mode .rail-item svg { width: 23px; height: 23px; }        .tablet-mode .rail-item:active { background: rgba(255,255,255,.07); }        .tablet-mode .rail-item.active { background: rgba(255,127,118,.16); color: var(--accent-light); }        .tablet-mode .rail-spacer { flex: 1 1 auto; min-height: 10px; }        .tablet-mode .main-container { grid-column: 2; grid-row: 1; }        .tablet-mode .page-content { width: 100%; max-width: 1360px; margin: 0 auto; padding-left: 34px; padding-right: 34px; }        .tablet-mode .top-bar { padding-left: 34px; padding-right: 34px; }        .tablet-mode .player-bar {
-            grid-column: 1 / -1;            grid-row: 2;            --player-height: 92px;            padding-left: 26px;            padding-right: 26px;        }        .tablet-mode .player-cover { width: 58px; height: 58px; }        .tablet-mode .play-btn { width: 58px; height: 58px; }        .tablet-mode .play-btn svg { width: 30px; height: 30px; }        .tablet-mode .ctrl-btn { width: 52px; height: 52px; }        .tablet-mode .ctrl-btn svg { width: 24px; height: 24px; }        .tablet-mode .progress-bar { max-width: 860px; }        .tablet-mode .player-title { font-size: 16px; }        
-        /* 首页：居中限宽 */        .tablet-mode .home {
-            max-width: 1240px;            margin: 0 auto;            padding-left: 34px;            padding-right: 34px;            padding-top: 78px !important;        }        
-        /* 播放页：左信息 / 右歌词 双栏 */        .tablet-mode .lyrics-panel {
-            display: grid;            grid-template-columns: minmax(300px, 31%) minmax(0, 1fr);            grid-template-rows: auto 1fr auto;            grid-template-areas: "head lyr" "cover lyr" "foot lyr";            column-gap: 40px;            height: 100%;            padding: var(--sbh) 44px var(--sbn);        }
-        .lyrics-cover { display: none; }
-        .tablet-mode .lyrics-cover { grid-area: cover; display: block; width: 100%; max-width: 330px; aspect-ratio: 1; object-fit: cover; border-radius: 22px; justify-self: start; align-self: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); margin: 10px 0; }
-        .tablet-mode .lyrics-panel-header { grid-area: head; padding: 30px 0 0; justify-content: flex-start; }
-        .tablet-mode .lyrics-panel-header::before { top: 6px; width: 54px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.34); }        .tablet-mode .lyrics-panel-content {
-            grid-area: lyr;            max-width: none;            padding: 84px 10px 28px;        }        .tablet-mode .lyrics-footer { grid-area: foot; align-self: end; padding: 0 0 16px; }        .tablet-mode .lyrics-title { font-size: 25px; }        .tablet-mode .lyrics-artist { font-size: 15px; margin-top: 4px; }        .tablet-mode .lc-times { font-size: 13px; }        .tablet-mode .lc-btn { width: 56px; height: 56px; }        .tablet-mode .lc-play { width: 68px; height: 68px; }        .tablet-mode .lc-play svg { width: 34px; height: 34px; }        .tablet-mode .lc-buttons { gap: 26px; margin-top: 6px; }        .tablet-mode .lc-track { height: 26px; }        .tablet-mode .lc-actions { margin-top: 2px; }        
-        /* 列表行加大，便于车上触控 */        .tablet-mode .song-row { padding-top: 15px; padding-bottom: 15px; }        .tablet-mode .card, .tablet-mode .album-card, .tablet-mode .lib-card { border-radius: 16px; }        
-        /* 浅色外壳下的侧栏配色 */        .tablet-mode #app.home-mode .tablet-rail {
-            background: #fff;            border-right: 1px solid rgba(0,0,0,.07);        }        .tablet-mode #app.home-mode .rail-item { color: #77777d; }        .tablet-mode #app.home-mode .rail-item.active { background: rgba(226,96,90,.12); color: #e2605a; }        .tablet-mode #app.home-mode.dark-ui .tablet-rail { background: #17171d; border-right-color: rgba(255,255,255,.08); }        .tablet-mode #app.home-mode.dark-ui .rail-item { color: #8d8d97; }        .tablet-mode #app.home-mode.dark-ui .rail-item.active { background: rgba(255,127,118,.16); color: #ff7f76; }    </style>
+
+    /* 老内核兜底：Chrome<88 不支持 aspect-ratio */
+    @supports not (aspect-ratio: 1 / 1) {
+        .album-cover, .artist-avatar { height: 0; padding-bottom: 100%; position: relative; }
+        .album-cover img, .artist-avatar img, .album-cover .play-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    }
+
+    /* ===== 平板 / 车机模式（宽屏横屏） ===== */
+    .tablet-rail { display: none; }
+    .lyrics-cover { display: none; }
+
+    .tablet-mode #app.active {
+        display: grid;
+        grid-template-columns: 112px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) 96px;
+        height: 100%;
+        overflow: hidden;
+    }
+    .tablet-mode .tablet-rail {
+        display: flex; flex-direction: column;
+        grid-column: 1; grid-row: 1;
+        min-height: 0;
+        padding: calc(8px + var(--sbh)) 7px 8px;
+        background: var(--bg-card);
+        border-right: 1px solid var(--border);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .tablet-mode .rail-item {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 7px 2px; margin-bottom: 3px;
+        border-radius: 14px;
+        color: var(--text-dim); font-size: 11px; font-weight: 600; letter-spacing: .3px;
+        transition: background .15s, color .15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .tablet-mode .rail-item svg { width: 22px; height: 22px; margin-bottom: 2px; }
+    .tablet-mode .rail-item:active { background: rgba(255,255,255,.07); }
+    .tablet-mode .rail-item.active { background: rgba(255,127,118,.16); color: var(--accent-light); }
+    .tablet-mode .rail-spacer { flex: 1 1 auto; min-height: 8px; }
+
+    .tablet-mode .main-container { grid-column: 2; grid-row: 1; min-width: 0; min-height: 0; }
+    .tablet-mode .sidebar { display: none; }
+    .tablet-mode .page-content { width: 100%; max-width: none; margin: 0; padding-left: 28px; padding-right: 28px; }
+    .tablet-mode .top-bar { padding-left: 28px; padding-right: 28px; }
+
+    /* 底部播放条：整行铺满、固定 96px，不再外飘 */
+    .tablet-mode .player-bar,
+    .tablet-mode #app.home-mode .player-bar {
+        grid-column: 1 / -1; grid-row: 2;
+        --player-height: 96px;
+        height: 96px;
+        margin: 0; border-radius: 0;
+        border-top: 1px solid rgba(0,0,0,.06);
+        padding: 0 26px; box-sizing: border-box;
+        gap: 18px; overflow: hidden; box-shadow: none;
+    }
+    .tablet-mode .player-cover { width: 56px; height: 56px; }
+    .tablet-mode .play-btn { width: 56px; height: 56px; }
+    .tablet-mode .play-btn svg { width: 28px; height: 28px; }
+    .tablet-mode .ctrl-btn { width: 50px; height: 50px; }
+    .tablet-mode .ctrl-btn svg { width: 24px; height: 24px; }
+    .tablet-mode .player-controls { max-width: none; }
+    .tablet-mode .progress-bar { max-width: 900px; }
+    .tablet-mode .player-title { font-size: 16px; }
+    .tablet-mode .player-artist { font-size: 13px; }
+
+    /* 首页：铺满整屏，曲库四列一行，无需滚动 */
+    .tablet-mode .home { max-width: none; margin: 0; padding: calc(var(--sbh) + 10px) 32px 16px; }
+    .tablet-mode .home-head { padding: 0 0 2px; }
+    .tablet-mode .home-hero-bg { height: 300px; opacity: .4; }
+    .tablet-mode .home-hero-mask { height: 340px; }
+    .tablet-mode .home-feature { align-items: center; gap: 30px; margin: 2px 0 18px; }
+    .tablet-mode .home-feature-cover { width: 224px; height: 224px; border-radius: 24px; }
+    .tablet-mode .home-feature-title { font-size: 34px; margin: 10px 0 4px; }
+    .tablet-mode .home-feature-info { padding-top: 0; }
+    .tablet-mode .home-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+    .tablet-mode .lib-card { padding: 12px 12px; }
+    .tablet-mode .lib-title { font-size: 17px; }
+    .tablet-mode .home-sec-title { font-size: 22px; }
+
+    /* 底部选择面板：车机上居中限宽 */
+    .tablet-mode .pick-sheet { width: 700px; max-width: 92vw; margin: 0 auto 18px; border-radius: 22px; }
+    .tablet-mode .ss-sheet { width: 760px; max-width: 94vw; margin: 0 auto 18px; border-radius: 22px; }
+
+    /* 设置页：内容居中限宽，避免 1900 宽的一行长条 */
+    .tablet-mode .settings-page > * { max-width: 880px; margin-left: auto; margin-right: auto; }
+
+    /* 播放页：左信息 / 右歌词 双栏 */
+    .tablet-mode .lyrics-panel {
+        display: grid;
+        box-sizing: border-box;
+        grid-template-columns: minmax(300px, 31%) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        grid-template-areas: "head lyr" "cover lyr" "foot lyr";
+        column-gap: 40px;
+        width: 100%; max-width: none;
+        height: 100%;
+        padding: var(--sbh) 44px var(--sbn);
+    }
+    .tablet-mode .lyrics-cover { display: block; grid-area: cover; width: 100%; max-width: 330px; height: 330px; object-fit: cover; border-radius: 22px; justify-self: start; align-self: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); margin: 10px 0; }
+    .tablet-mode .lyrics-panel-header { grid-area: head; padding: 30px 0 0; justify-content: flex-start; }
+    .tablet-mode .lyrics-panel-header::before { top: 6px; width: 54px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.34); }
+    .tablet-mode .lyrics-panel-content { grid-area: lyr; max-width: none; padding: 84px 10px 28px; }
+    .tablet-mode .lyrics-footer { grid-area: foot; align-self: end; padding: 0 0 16px; }
+    .tablet-mode .lyrics-title { font-size: 25px; }
+    .tablet-mode .lyrics-artist { font-size: 15px; margin-top: 4px; }
+    .tablet-mode .lc-times { font-size: 13px; }
+    .tablet-mode .lc-btn { width: 56px; height: 56px; }
+    .tablet-mode .lc-play { width: 68px; height: 68px; }
+    .tablet-mode .lc-play svg { width: 34px; height: 34px; }
+    .tablet-mode .lc-buttons { gap: 26px; margin-top: 6px; }
+    .tablet-mode .lc-track { height: 26px; }
+    .tablet-mode .lc-actions { margin-top: 2px; }
+
+    /* 列表行加大，便于车上触控 */
+    .tablet-mode .song-row { padding-top: 15px; padding-bottom: 15px; }
+    .tablet-mode .card, .tablet-mode .album-card, .tablet-mode .lib-card { border-radius: 16px; }
+
+    /* 浅色外壳下的侧栏配色 */
+    .tablet-mode #app.home-mode .tablet-rail { background: #fff; border-right: 1px solid rgba(0,0,0,.07); }
+    .tablet-mode #app.home-mode .rail-item { color: #77777d; }
+    .tablet-mode #app.home-mode .rail-item.active { background: rgba(226,96,90,.12); color: #e2605a; }
+    .tablet-mode #app.home-mode.dark-ui .tablet-rail { background: #17171d; border-right-color: rgba(255,255,255,.08); }
+    .tablet-mode #app.home-mode.dark-ui .rail-item { color: #8d8d97; }
+    .tablet-mode #app.home-mode.dark-ui .rail-item.active { background: rgba(255,127,118,.16); color: #ff7f76; }
+    </style>
 </head>
 <body>
 
@@ -1993,7 +2103,7 @@
             <div class="login-error" id="login-error"></div>
         </form>
     </div>
-    <div class="login-foot" id="login-foot">v1.0.16</div>
+    <div class="login-foot" id="login-foot">v1.0.17</div>
 </div>
 
 <!-- ===== 主应用 ===== -->
@@ -3949,6 +4059,17 @@ const App = {
         }
     },
 
+    webviewInfo() {
+        let ver = '?';
+        try {
+            const m = (navigator.userAgent || '').match(/Chrome\/([0-9.]+)/);
+            if (m) ver = m[1];
+        } catch (e) {}
+        const w = window.innerWidth || 0;
+        const h = window.innerHeight || 0;
+        return 'Chrome ' + ver + ' · ' + w + '×' + h;
+    },
+
     isTabletMode() {
         return document.documentElement.classList.contains('tablet-mode');
     },
@@ -4777,7 +4898,8 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.16')}
+                    ${rowInfo('运行内核', escapeHtml(App.webviewInfo()))}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.17')}
                 `)}
             </div>
         `;
@@ -5113,7 +5235,7 @@ try {
     var ua = navigator.userAgent || '';
     var cm = ua.match(/Chrome\/([\d.]+)/);
     var foot = document.getElementById('login-foot');
-    if (foot) foot.textContent = 'v1.0.16 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
+    if (foot) foot.textContent = 'v1.0.17 · ' + (cm ? 'WebView ' + cm[1] : ua.slice(0, 48));
 } catch (e) { console.error(e); }
 try { Player.init(); } catch (e) { console.error(e); showFatal('Player.init', e); }
 try { AppEnv.init(); } catch (e) { console.error(e); showFatal('AppEnv.init', e); }
