@@ -44,7 +44,16 @@ jobs:
 
       - name: Build debug + release APK
         run: |
-          gradle :app:assembleDebug :app:assembleRelease --no-daemon --stacktrace
+          for attempt in 1 2 3; do
+            echo "build attempt $attempt"
+            if gradle :app:assembleDebug :app:assembleRelease --no-daemon --stacktrace; then
+              exit 0
+            fi
+            echo "attempt $attempt failed, retrying in 30s..."
+            sleep 30
+          done
+          echo "build failed after 3 attempts"
+          exit 1
 
       - name: Locate build output
         run: find app/build/outputs -name "*.apk" -type f -exec ls -lh {} \;
