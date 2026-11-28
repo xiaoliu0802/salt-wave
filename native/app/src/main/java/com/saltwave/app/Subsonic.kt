@@ -100,7 +100,7 @@ class Subsonic(server: String, private val user: String, pass: String) {
     }
 
     /** 先试 OpenSubsonic 的结构化歌词，再退回 getLyrics 的纯文本/LRC。 */
-    suspend fun lyrics(id: String, artist: String, title: String): List<LyricLine> = io {
+    suspend fun lyrics(id: String, artist: String, title: String, durationMs: Long = 0L): List<LyricLine> = io {
         val structured = runCatching {
             val r = call("getLyricsBySongId", "id" to id)
             val list = r.optJSONObject("lyricsList")?.optJSONArray("structuredLyrics")
@@ -110,12 +110,13 @@ class Subsonic(server: String, private val user: String, pass: String) {
             } else {
                 (0 until lines.length()).mapNotNull { i ->
                     val o = lines.optJSONObject(i) ?: return@mapNotNull null
-                    val text = o.optString("value").ifEmpty { o.optString("text") }
-                    LyricLine(o.optLong("start"), text)
-                }.filter { it.text.isNotBlank() }
+                    val text = cleanLyricText(o.optString("value").ifEmpty { o.optString("text") })
+                    if (text.isEmpty() || isJunkLyricText(text)) return@mapNotNull null
+                    LyricLine(o.optLong("start").coerceAtLeast(0L), text)
+                }
             }
         }.getOrDefault(emptyList())
-        if (structured.isNotEmpty()) return@io structured
+        if (structured.isNotEmpty()) return@io distributeLyrics(structured, durationMs)
 
         val plain = runCatching {
             call("getLyrics", "artist" to artist, "title" to title)
@@ -124,7 +125,10 @@ class Subsonic(server: String, private val user: String, pass: String) {
         if (plain.isBlank()) {
             emptyList()
         } else {
-            parseLrc(plain).ifEmpty { listOf(LyricLine(0L, plain.trim())) }
+            parseLrc(plain, durationMs).ifEmpty {
+                val cleaned = plain.lines().map { cleanLyricText(it) }.filter { it.isNotEmpty() && !isJunkLyricText(it) }
+                distributeLyrics(cleaned.map { LyricLine(0L, it) }, durationMs)
+            }
         }
     }
 

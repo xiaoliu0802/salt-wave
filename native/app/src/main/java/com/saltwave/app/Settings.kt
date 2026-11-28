@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
@@ -34,6 +35,15 @@ object AppSettings {
     var lyricOffsetMs by mutableIntStateOf(0)
     var showLyricPanel by mutableStateOf(true)
     var lyricColorIndex by mutableIntStateOf(0)
+    var lyricWeight by mutableIntStateOf(400)
+    var lyricBlur by mutableStateOf(true)
+    var lyricStagger by mutableStateOf(false)
+
+    // 播放记忆
+    var autoResume by mutableStateOf(false)
+    var resumeIds by mutableStateOf("")
+    var resumeIndex by mutableIntStateOf(0)
+    var resumePos by mutableLongStateOf(0L)
 
     // 音质
     var bitrate by mutableIntStateOf(0)        // kbps，0 表示不转码
@@ -67,6 +77,13 @@ object AppSettings {
         lyricOffsetMs = p.getInt("ly.offset", 0)
         showLyricPanel = p.getBoolean("ly.panel", true)
         lyricColorIndex = p.getInt("ly.color", 0)
+        lyricWeight = p.getInt("ly.weight", 400)
+        lyricBlur = p.getBoolean("ly.blur", true)
+        lyricStagger = p.getBoolean("ly.stagger", false)
+        autoResume = p.getBoolean("pb.autoresume", false)
+        resumeIds = p.getString("rs.ids", "").orEmpty()
+        resumeIndex = p.getInt("rs.idx", 0)
+        resumePos = p.getLong("rs.pos", 0L)
         bitrate = p.getInt("au.bitrate", 0)
         forceMp3 = p.getBoolean("au.mp3", false)
         speed = p.getFloat("pb.speed", 1f)
@@ -95,6 +112,13 @@ object AppSettings {
             ?.putInt("ly.offset", lyricOffsetMs)
             ?.putBoolean("ly.panel", showLyricPanel)
             ?.putInt("ly.color", lyricColorIndex)
+            ?.putInt("ly.weight", lyricWeight)
+            ?.putBoolean("ly.blur", lyricBlur)
+            ?.putBoolean("ly.stagger", lyricStagger)
+            ?.putBoolean("pb.autoresume", autoResume)
+            ?.putString("rs.ids", resumeIds)
+            ?.putInt("rs.idx", resumeIndex)
+            ?.putLong("rs.pos", resumePos)
             ?.putInt("au.bitrate", bitrate)
             ?.putBoolean("au.mp3", forceMp3)
             ?.putFloat("pb.speed", speed)
@@ -108,6 +132,18 @@ object AppSettings {
     }
 
     fun bitrateText(): String = if (bitrate <= 0) "原始" else "${bitrate}k"
+
+    /** 只写播放记忆，避免每次都全量落盘。 */
+    fun saveResume(ids: List<String>, index: Int, pos: Long) {
+        resumeIds = ids.joinToString("|")
+        resumeIndex = index
+        resumePos = pos
+        prefs?.edit()
+            ?.putString("rs.ids", resumeIds)
+            ?.putInt("rs.idx", index)
+            ?.putLong("rs.pos", pos)
+            ?.apply()
+    }
 }
 
 /** 音质选项。 */
