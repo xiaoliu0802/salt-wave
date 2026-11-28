@@ -38,6 +38,16 @@ object Now {
     var queue by mutableStateOf<List<QueueEntry>>(emptyList())
     var sleepUntil by mutableStateOf<Long?>(null)
 
+    /** 跳转后短时间锁住进度显示，避免进度条被旧位置拽回去。 */
+    var seekTarget by mutableStateOf<Long?>(null)
+    var seekAt by mutableLongStateOf(0L)
+
+    fun markSeek(target: Long) {
+        seekTarget = target
+        seekAt = System.currentTimeMillis()
+        position = target
+    }
+
     private var bound = false
 
     fun bind(c: MediaController) {

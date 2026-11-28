@@ -1,9 +1,14 @@
 package com.saltwave.app
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 /** 全局曲库状态（内存缓存，不做离线存储）。 */
 object Repo {
@@ -17,6 +22,13 @@ object Repo {
     val playlists = mutableStateListOf<Playlist>()
     val starred = mutableStateListOf<Album>()
 
+    /** 全部歌曲：按专辑顺序逐批拉取后拼起来。 */
+    val songs = mutableStateListOf<Track>()
+    var songsTotal by mutableIntStateOf(0)
+    var songsDone by mutableStateOf(false)
+    var songsLoading by mutableStateOf(false)
+    private var songsCursor = 0
+
     private val songCache = HashMap<String, List<Track>>()
 
     private var albumOffset = 0
@@ -28,11 +40,47 @@ object Repo {
         playlists.clear()
         starred.clear()
         songCache.clear()
+        songs.clear()
+        songsTotal = 0
+        songsDone = false
+        songsLoading = false
+        songsCursor = 0
         albumOffset = 0
         albumsDone = false
         loadingMore = false
         loaded = false
         loading = false
+    }
+
+    /** 一次拉一批专辑里的歌，边拉边显示，不阻塞首页其它 tab。 */
+    suspend fun loadAllSongs() {
+        val client = api ?: return
+        if (songsLoading || songsDone || demo) return
+        songsLoading = true
+        try {
+            if (albums.isEmpty()) load()
+            val list = albums.toList()
+            songsTotal = list.size
+            var cursor = songsCursor
+            while (cursor < list.size) {
+                val batch = list.subList(cursor, minOf(cursor + BATCH, list.size))
+                val fetched = coroutineScope {
+                    batch.map { al ->
+                        async(Dispatchers.IO) {
+                            runCatching { client.albumSongs(al.id) }.getOrDefault(emptyList())
+                        }
+                    }.awaitAll()
+                }
+                fetched.forEach { songs.addAll(it) }
+                cursor += batch.size
+                songsCursor = cursor
+            }
+            songsDone = true
+        } catch (e: Exception) {
+            songsDone = true
+        } finally {
+            songsLoading = false
+        }
     }
 
     suspend fun load() {
@@ -77,6 +125,7 @@ object Repo {
     }
 
     private const val PAGE = 100
+    private const val BATCH = 8
 
     fun cachedSongs(playlist: Boolean, id: String): List<Track>? = songCache[key(playlist, id)]
 
@@ -136,6 +185,10 @@ object Repo {
         }
         starred.add(albums[0])
         starred.add(albums[3])
+        songs.clear()
+        for (i in 0 until 3) songs.addAll(demoSongs(names[i], artists[i], covers[i]))
+        songsDone = true
+        songsTotal = albums.size
     }
 
     fun demoSongs(title: String, artist: String, demoRes: Int?): List<Track> {

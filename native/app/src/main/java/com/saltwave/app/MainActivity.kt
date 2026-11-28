@@ -18,6 +18,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +66,7 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -97,6 +99,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -199,6 +202,8 @@ fun AppRoot(controller: MediaController?) {
     val context = LocalContext.current
     val c = sw()
     var stack by remember { mutableStateOf(listOf<Screen>(Screen.Home(0))) }
+    var queueOpen by remember { mutableStateOf(false) }
+    var miniLines by remember { mutableStateOf<List<LyricLine>>(emptyList()) }
     val current = stack.last()
     val dark = when (AppSettings.themeMode) {
         1 -> false
@@ -206,10 +211,31 @@ fun AppRoot(controller: MediaController?) {
         else -> isSystemInDarkTheme()
     }
 
+    LaunchedEffect(Now.mediaId) {
+        val id = Now.mediaId
+        miniLines = if (id == null) emptyList() else LyricBook.load(Repo.api, id, Now.artist, Now.title)
+    }
+
+    val miniLine = if (miniLines.isEmpty()) {
+        ""
+    } else {
+        val idx = miniLines.indexOfLast { it.timeMs <= Now.position + AppSettings.lyricOffsetMs }
+        if (idx >= 0) miniLines[idx].text else ""
+    }
+
     LaunchedEffect(controller) {
         while (true) {
             delay(520)
             val p = controller ?: continue
+            val target = Now.seekTarget
+            if (target != null) {
+                // 跳转后给播放器 1.2 秒去真的走位，期间不信它报旧位置
+                if (System.currentTimeMillis() - Now.seekAt > 1200) {
+                    Now.seekTarget = null
+                } else {
+                    continue
+                }
+            }
             Now.position = p.currentPosition
             if (p.duration > 0) Now.duration = p.duration
             Now.playing = p.isPlaying
@@ -259,6 +285,7 @@ fun AppRoot(controller: MediaController?) {
         when (current) {
             is Screen.Home -> HomeScreen(
                 tab = current.tab,
+                controller = controller,
                 onTab = { t -> stack = stack.dropLast(1) + Screen.Home(t) },
                 onServer = { stack = stack + Screen.Login },
                 onSettings = { stack = stack + Screen.Settings },
@@ -285,6 +312,7 @@ fun AppRoot(controller: MediaController?) {
                 controller = controller,
                 onBack = { stack = stack.dropLast(1) },
                 onSettings = { stack = stack + Screen.Settings },
+                onQueue = { queueOpen = true },
             )
 
             Screen.Settings -> SettingsScreen(
@@ -297,10 +325,16 @@ fun AppRoot(controller: MediaController?) {
         if (!playerOpen && AppSettings.showMiniPlayer && Now.title.isNotEmpty() && controller != null) {
             MiniPlayer(
                 controller = controller,
+                lyric = miniLine,
                 modifier = Modifier.align(Alignment.BottomCenter),
                 onClick = { stack = stack + Screen.Player },
+                onQueue = { queueOpen = true },
             )
         }
+    }
+
+    if (queueOpen) {
+        QueueSheet(controller = controller, onClose = { queueOpen = false })
     }
 }
 
@@ -309,6 +343,7 @@ fun AppRoot(controller: MediaController?) {
 @Composable
 fun HomeScreen(
     tab: Int,
+    controller: MediaController?,
     onTab: (Int) -> Unit,
     onServer: () -> Unit,
     onSettings: () -> Unit,
@@ -316,6 +351,14 @@ fun HomeScreen(
     onPlaylist: (Playlist) -> Unit,
 ) {
     val c = sw()
+    val context = LocalContext.current
+
+    LaunchedEffect(tab) {
+        if (tab == 1 && Repo.api != null && !Repo.demo && !Repo.songsDone) {
+            runCatching { Repo.loadAllSongs() }
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Spacer(Modifier.height(14.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -332,21 +375,31 @@ fun HomeScreen(
             }
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = c.accentSoft,
+                color = if (Repo.api != null) c.accentSoft else c.field,
                 onClick = onServer,
             ) {
-                Text(
-                    if (Repo.api != null) "服务器" else "未连接",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = c.accent,
-                )
+                Row(
+                    Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(6.dp).clip(CircleShape).background(if (Repo.api != null) c.accent else c.sub))
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        when {
+                            Repo.demo -> "演示"
+                            Repo.api != null -> "已连接"
+                            else -> "未连接"
+                        },
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (Repo.api != null) c.accent else c.sub,
+                    )
+                }
             }
         }
         Spacer(Modifier.height(16.dp))
         Row {
-            val names = listOf("专辑", "歌单", "收藏")
+            val names = listOf("专辑", "歌曲", "歌单", "收藏")
             names.forEachIndexed { i, n ->
                 val on = tab == i
                 Surface(
@@ -357,7 +410,7 @@ fun HomeScreen(
                 ) {
                     Text(
                         n,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                        modifier = Modifier.padding(horizontal = 15.dp, vertical = 7.dp),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (on) Color.White else c.sub,
@@ -370,14 +423,46 @@ fun HomeScreen(
         when {
             Repo.api == null && !Repo.demo -> EmptyBox("还没有连接服务器\n点右上角“服务器”填入地址后就能看到你的曲库")
             Repo.loading -> EmptyBox("正在从服务器读取…")
+            tab == 1 -> {
+                val list = Repo.songs.toList()
+                when {
+                    list.isEmpty() && Repo.songsLoading ->
+                        EmptyBox("正在读取歌曲…\n按专辑顺序一页页拉，第一屏马上出来")
+
+                    list.isEmpty() && Repo.songsDone -> EmptyBox("曲库里还没有歌")
+
+                    else -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = if (AppSettings.showMiniPlayer) 96.dp else 20.dp),
+                    ) {
+                        if (Repo.songsLoading) {
+                            item {
+                                Text(
+                                    "读取中 · 已拿到 ${Repo.songs.size} 首（${Repo.songsTotal} 张专辑）",
+                                    fontSize = 11.sp,
+                                    color = c.sub,
+                                    modifier = Modifier.padding(bottom = 4.dp),
+                                )
+                            }
+                        }
+                        items(list) { track ->
+                            val index = list.indexOf(track)
+                            TrackRow(track, Now.mediaId == track.id) {
+                                startPlay(controller, list, index, context)
+                            }
+                        }
+                    }
+                }
+            }
+
             else -> {
                 val items: List<Any> = when (tab) {
                     0 -> Repo.albums.toList()
-                    1 -> Repo.playlists.toList()
+                    2 -> Repo.playlists.toList()
                     else -> Repo.starred.toList()
                 }
                 if (items.isEmpty()) {
-                    EmptyBox(if (tab == 2) "还没有收藏的专辑" else "这里是空的")
+                    EmptyBox(if (tab == 3) "还没有收藏的专辑" else "这里是空的")
                 } else {
                     val gridState = rememberLazyGridState()
                     val lastVisible = remember {
@@ -691,10 +776,14 @@ fun TrackRow(track: Track, playing: Boolean, onClick: () -> Unit) {
 // ---------------------------------------------------------------- 播放页
 
 @Composable
-fun PlayerScreen(controller: MediaController?, onBack: () -> Unit, onSettings: () -> Unit) {
+fun PlayerScreen(
+    controller: MediaController?,
+    onBack: () -> Unit,
+    onSettings: () -> Unit,
+    onQueue: () -> Unit,
+) {
     val c = sw()
     val context = LocalContext.current
-    var showQueue by remember { mutableStateOf(false) }
     var showSleep by remember { mutableStateOf(false) }
     var dragging by remember { mutableStateOf(false) }
     var dragValue by remember { mutableFloatStateOf(0f) }
@@ -730,7 +819,7 @@ fun PlayerScreen(controller: MediaController?, onBack: () -> Unit, onSettings: (
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            IconButton(onClick = { showQueue = true }, modifier = Modifier.size(38.dp)) {
+            IconButton(onClick = onQueue, modifier = Modifier.size(38.dp)) {
                 Icon(Icons.Rounded.QueueMusic, contentDescription = "播放队列", tint = rp, modifier = Modifier.size(20.dp))
             }
         }
@@ -794,8 +883,9 @@ fun PlayerScreen(controller: MediaController?, onBack: () -> Unit, onSettings: (
                 dragValue = it
             },
             onValueChangeFinished = {
-                controller?.seekTo(dragValue.toLong())
-                Now.position = dragValue.toLong()
+                val target = dragValue.toLong()
+                controller?.seekTo(target)
+                Now.markSeek(target)
                 dragging = false
             },
             colors = SliderDefaults.colors(
@@ -843,12 +933,16 @@ fun PlayerScreen(controller: MediaController?, onBack: () -> Unit, onSettings: (
                 modifier = Modifier.size(64.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(containerColor = c.accent),
             ) {
-                Icon(
-                    if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = "播放/暂停",
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp),
-                )
+                if (Now.buffering) {
+                    CircProgress()
+                } else {
+                    Icon(
+                        if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = "播放/暂停",
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp),
+                    )
+                }
             }
             Spacer(Modifier.width(10.dp))
             IconButton(onClick = { controller?.seekToNextMediaItem() }, modifier = Modifier.size(46.dp)) {
@@ -884,8 +978,16 @@ fun PlayerScreen(controller: MediaController?, onBack: () -> Unit, onSettings: (
                 AppSettings.persist()
                 controller?.setPlaybackSpeed(next)
             }
-            DarkPill("-${AppSettings.seekStep}s") { controller?.seekTo((Now.position - AppSettings.seekStep * 1000L).coerceAtLeast(0)) }
-            DarkPill("+${AppSettings.seekStep}s") { controller?.seekTo((Now.position + AppSettings.seekStep * 1000L).coerceAtMost(duration)) }
+            DarkPill("-${AppSettings.seekStep}s") {
+                val t = (Now.position - AppSettings.seekStep * 1000L).coerceAtLeast(0)
+                controller?.seekTo(t)
+                Now.markSeek(t)
+            }
+            DarkPill("+${AppSettings.seekStep}s") {
+                val t = (Now.position + AppSettings.seekStep * 1000L).let { if (duration > 0) it.coerceAtMost(duration) else it }
+                controller?.seekTo(t)
+                Now.markSeek(t)
+            }
             DarkPill(
                 text = if (Now.sleepUntil != null) "定时 ${sleepLeftText()}" else "定时",
                 active = Now.sleepUntil != null,
@@ -927,7 +1029,11 @@ fun PlayerScreen(controller: MediaController?, onBack: () -> Unit, onSettings: (
                                 line.text,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { controller?.seekTo(line.timeMs - offset) }
+                                    .clickable {
+                                        val t = (line.timeMs - offset).coerceAtLeast(0)
+                                        controller?.seekTo(t)
+                                        Now.markSeek(t)
+                                    }
                                     .padding(vertical = 7.dp),
                                 fontSize = (if (on) AppSettings.lyricSize + 3 else AppSettings.lyricSize).sp,
                                 fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
@@ -945,60 +1051,6 @@ fun PlayerScreen(controller: MediaController?, onBack: () -> Unit, onSettings: (
             }
         }
         Spacer(Modifier.height(8.dp))
-    }
-
-    if (showQueue) {
-        ModalBottomSheet(
-            onDismissRequest = { showQueue = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = Color(0xFF12161E),
-            contentColor = Color(0xFFE9EDF5),
-        ) {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Text("播放队列 ${Now.queue.size} 首", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF3F6FB))
-                    Spacer(Modifier.weight(1f))
-                    TextButton(onClick = { controller?.clearMediaItems() }) {
-                        Text("清空", fontSize = 12.sp, color = Color(0xFF98A1B2))
-                    }
-                }
-                LazyColumn(Modifier.fillMaxWidth().height(380.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
-                    items(Now.queue) { entry ->
-                        val i = Now.queue.indexOf(entry)
-                        Row(
-                            Modifier.fillMaxWidth()
-                                .clickable { controller?.seekTo(i, 0L) }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                if (i == Now.index) "▶" else "${i + 1}",
-                                fontSize = 11.sp,
-                                color = if (i == Now.index) c.accent else Color(0xFF7E8798),
-                                modifier = Modifier.width(26.dp),
-                            )
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    entry.title,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (i == Now.index) c.accent else Color(0xFFE9EDF5),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    entry.artist,
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF98A1B2),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     if (showSleep) {
@@ -1072,14 +1124,35 @@ fun DarkPill(text: String, active: Boolean = false, onClick: () -> Unit) {
 }
 
 @Composable
-fun MiniPlayer(controller: MediaController, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun MiniPlayer(
+    controller: MediaController,
+    lyric: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    onQueue: () -> Unit,
+) {
     val c = sw()
     val dur = Now.duration
     val frac = if (dur > 0) (Now.position.toFloat() / dur.toFloat()).coerceIn(0f, 1f) else 0f
+    var dragX by remember { mutableFloatStateOf(0f) }
 
     Surface(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(Now.mediaId) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (dragX < -70f) {
+                            controller.seekToNextMediaItem()
+                        } else if (dragX > 70f) {
+                            controller.seekToPreviousMediaItem()
+                        }
+                        dragX = 0f
+                    },
+                    onDragCancel = { dragX = 0f },
+                ) { _, dx -> dragX += dx }
+            },
         color = c.card,
         shadowElevation = 10.dp,
     ) {
@@ -1091,19 +1164,27 @@ fun MiniPlayer(controller: MediaController, modifier: Modifier = Modifier, onCli
                 trackColor = c.divider,
             )
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().padding(start = 10.dp, end = 2.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AsyncImage(
-                    model = Now.artwork,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(c.placeholder),
-                )
-                Spacer(Modifier.width(10.dp))
+                Box(contentAlignment = Alignment.Center) {
+                    AsyncImage(
+                        model = Now.artwork,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(c.placeholder),
+                    )
+                    if (Now.buffering) {
+                        Box(
+                            Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)).background(Color(0x66000000)),
+                            contentAlignment = Alignment.Center,
+                        ) { CircProgress(16.dp) }
+                    }
+                }
+                Spacer(Modifier.width(9.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
                         Now.title,
@@ -1114,19 +1195,116 @@ fun MiniPlayer(controller: MediaController, modifier: Modifier = Modifier, onCli
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        Now.artist,
+                        lyric.ifEmpty { Now.artist },
                         fontSize = 11.sp,
-                        color = c.sub,
+                        color = if (lyric.isNotEmpty()) c.accent else c.sub,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 1.dp),
                     )
                 }
-                IconButton(onClick = { if (Now.playing) controller.pause() else controller.play() }) {
-                    Icon(
-                        if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = null,
-                        tint = c.accent,
-                    )
+                IconButton(
+                    onClick = { controller.seekToPreviousMediaItem() },
+                    modifier = Modifier.size(34.dp),
+                ) {
+                    Icon(Icons.Rounded.SkipPrevious, contentDescription = "上一首", tint = c.sub, modifier = Modifier.size(20.dp))
+                }
+                IconButton(
+                    onClick = { if (Now.playing) controller.pause() else controller.play() },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    if (Now.buffering) {
+                        CircProgress(20.dp, c.accent)
+                    } else {
+                        Icon(
+                            if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = "播放/暂停",
+                            tint = c.accent,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = { controller.seekToNextMediaItem() },
+                    modifier = Modifier.size(34.dp),
+                ) {
+                    Icon(Icons.Rounded.SkipNext, contentDescription = "下一首", tint = c.sub, modifier = Modifier.size(20.dp))
+                }
+                IconButton(onClick = onQueue, modifier = Modifier.size(34.dp)) {
+                    Icon(Icons.Rounded.QueueMusic, contentDescription = "播放列表", tint = c.sub, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CircProgress(size: Dp = 26.dp, color: Color = Color.White) {
+    CircularProgressIndicator(
+        modifier = Modifier.size(size),
+        color = color,
+        strokeWidth = 2.dp,
+    )
+}
+
+@Composable
+fun QueueSheet(controller: MediaController?, onClose: () -> Unit) {
+    val c = sw()
+    ModalBottomSheet(
+        onDismissRequest = onClose,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Color(0xFF12161E),
+        contentColor = Color(0xFFE9EDF5),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "播放队列 ${Now.queue.size} 首",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFF3F6FB),
+                )
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { controller?.clearMediaItems() }) {
+                    Text("清空", fontSize = 12.sp, color = Color(0xFF98A1B2))
+                }
+            }
+            LazyColumn(Modifier.fillMaxWidth().height(400.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
+                items(Now.queue) { entry ->
+                    val i = Now.queue.indexOf(entry)
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .clickable {
+                                controller?.seekTo(i, 0L)
+                                onClose()
+                            }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            if (i == Now.index) "▶" else "${i + 1}",
+                            fontSize = 11.sp,
+                            color = if (i == Now.index) c.accent else Color(0xFF7E8798),
+                            modifier = Modifier.width(26.dp),
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                entry.title,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (i == Now.index) c.accent else Color(0xFFE9EDF5),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                entry.artist,
+                                fontSize = 11.sp,
+                                color = Color(0xFF98A1B2),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -4,7 +4,9 @@ import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
@@ -16,6 +18,15 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         AppSettings.init(applicationContext)
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                20_000,   // 最短缓冲
+                90_000,   // 最长缓冲
+                800,      // 够播就立刻出声（默认 2s，网络歌等太久）
+                2_000,    // 掉线后回填门槛
+            )
+            .build()
+
         val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
                 AudioAttributes.Builder()
@@ -24,6 +35,8 @@ class PlaybackService : MediaSessionService() {
                     .build(),
                 AppSettings.focusResume,
             )
+            .setLoadControl(loadControl)
+            .setSeekParameters(SeekParameters.CLOSEST_SYNC)
             .setHandleAudioBecomingNoisy(AppSettings.noisyPause)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .setSeekBackIncrementMs(AppSettings.seekStep * 1000L)
