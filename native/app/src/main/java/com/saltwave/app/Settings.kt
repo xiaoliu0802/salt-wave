@@ -32,6 +32,7 @@ object AppSettings {
     var lyricCenter by mutableStateOf(false)
     var lyricOffsetMs by mutableIntStateOf(0)
     var showLyricPanel by mutableStateOf(true)
+    var lyricColorIndex by mutableIntStateOf(0)
 
     // 音质
     var bitrate by mutableIntStateOf(0)        // kbps，0 表示不转码
@@ -42,6 +43,9 @@ object AppSettings {
     var seekStep by mutableIntStateOf(10)
     var noisyPause by mutableStateOf(true)
     var focusResume by mutableStateOf(true)
+    var fade by mutableStateOf(true)
+    var gapless by mutableStateOf(true)
+    var balance by mutableStateOf(false)
 
     fun init(ctx: Context) {
         if (prefs != null) return
@@ -60,12 +64,16 @@ object AppSettings {
         lyricCenter = p.getBoolean("ly.center", false)
         lyricOffsetMs = p.getInt("ly.offset", 0)
         showLyricPanel = p.getBoolean("ly.panel", true)
+        lyricColorIndex = p.getInt("ly.color", 0)
         bitrate = p.getInt("au.bitrate", 0)
         forceMp3 = p.getBoolean("au.mp3", false)
         speed = p.getFloat("pb.speed", 1f)
         seekStep = p.getInt("pb.step", 10)
         noisyPause = p.getBoolean("pb.noisy", true)
         focusResume = p.getBoolean("pb.focus", true)
+        fade = p.getBoolean("pb.fade", true)
+        gapless = p.getBoolean("pb.gapless", true)
+        balance = p.getBoolean("pb.balance", false)
     }
 
     fun persist() {
@@ -83,12 +91,16 @@ object AppSettings {
             ?.putBoolean("ly.center", lyricCenter)
             ?.putInt("ly.offset", lyricOffsetMs)
             ?.putBoolean("ly.panel", showLyricPanel)
+            ?.putInt("ly.color", lyricColorIndex)
             ?.putInt("au.bitrate", bitrate)
             ?.putBoolean("au.mp3", forceMp3)
             ?.putFloat("pb.speed", speed)
             ?.putInt("pb.step", seekStep)
             ?.putBoolean("pb.noisy", noisyPause)
             ?.putBoolean("pb.focus", focusResume)
+            ?.putBoolean("pb.fade", fade)
+            ?.putBoolean("pb.gapless", gapless)
+            ?.putBoolean("pb.balance", balance)
             ?.apply()
     }
 

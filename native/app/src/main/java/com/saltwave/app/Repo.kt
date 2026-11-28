@@ -21,8 +21,9 @@ object Repo {
     val albums = mutableStateListOf<Album>()
     val playlists = mutableStateListOf<Playlist>()
     val starred = mutableStateListOf<Album>()
+    val artists = mutableStateListOf<Artist>()
 
-    /** 全部歌曲：按专辑顺序逐批拉取后拼起来。 */
+    /** 全部歌曲：先把专辑列表分页拉完，再按专辑逐批取歌，保证不是“随机一百首”。 */
     val songs = mutableStateListOf<Track>()
     var songsTotal by mutableIntStateOf(0)
     var songsDone by mutableStateOf(false)
@@ -30,6 +31,7 @@ object Repo {
     private var songsCursor = 0
 
     private val songCache = HashMap<String, List<Track>>()
+    private val artistCache = HashMap<String, List<Album>>()
 
     private var albumOffset = 0
     private var albumsDone = false
@@ -39,7 +41,9 @@ object Repo {
         albums.clear()
         playlists.clear()
         starred.clear()
+        artists.clear()
         songCache.clear()
+        artistCache.clear()
         songs.clear()
         songsTotal = 0
         songsDone = false
@@ -59,6 +63,8 @@ object Repo {
         songsLoading = true
         try {
             if (albums.isEmpty()) load()
+            // 关键：先把专辑分页全部拉完，否则只会拿到前 100 张专辑的歌
+            while (!albumsDone) loadMoreAlbums()
             val list = albums.toList()
             songsTotal = list.size
             var cursor = songsCursor
@@ -91,6 +97,7 @@ object Repo {
             val a = client.albums(PAGE)
             val p = client.playlists()
             val s = client.starred()
+            val ar = runCatching { client.artists() }.getOrDefault(emptyList())
             albums.clear()
             albums.addAll(a)
             albumOffset = a.size
@@ -99,6 +106,8 @@ object Repo {
             playlists.addAll(p)
             starred.clear()
             starred.addAll(s)
+            artists.clear()
+            artists.addAll(ar)
             loaded = true
         } finally {
             loading = false
@@ -138,6 +147,16 @@ object Repo {
         return list
     }
 
+    fun cachedArtistAlbums(id: String): List<Album>? = artistCache[id]
+
+    suspend fun artistAlbums(id: String): List<Album> {
+        artistCache[id]?.let { return it }
+        val client = api ?: return emptyList()
+        val list = runCatching { client.artistAlbums(id) }.getOrDefault(emptyList())
+        artistCache[id] = list
+        return list
+    }
+
     fun streamUrl(track: Track): String? = api?.streamUrl(track)
 
     fun coverUrl(coverId: String?): String? = api?.coverUrl(coverId, 480)
@@ -152,7 +171,7 @@ object Repo {
         demo = true
         loaded = true
         val names = listOf("夜航", "墨", "黄昏以后", "潮汐线", "黑点", "雾中来信")
-        val artists = listOf("北岸乐队", "林砚", "黄昏以后", "潮汐线", "黑点乐队", "雾中来信")
+        val artistNames = listOf("北岸乐队", "林砚", "黄昏以后", "潮汐线", "黑点乐队", "雾中来信")
         val covers = intArrayOf(
             R.drawable.cover1, R.drawable.cover2, R.drawable.cover3,
             R.drawable.cover4, R.drawable.cover5, R.drawable.cover6,
@@ -162,7 +181,7 @@ object Repo {
                 Album(
                     id = "demo-a$i",
                     name = names[i],
-                    artist = artists[i],
+                    artist = artistNames[i],
                     count = 10 + i,
                     coverId = null,
                     demoRes = covers[i],
@@ -183,10 +202,21 @@ object Repo {
                 )
             )
         }
+        for (i in 0 until 6) {
+            artists.add(
+                Artist(
+                    id = "demo-ar$i",
+                    name = artistNames[i],
+                    count = 1 + i % 3,
+                    coverId = null,
+                    demoRes = covers[i],
+                )
+            )
+        }
         starred.add(albums[0])
         starred.add(albums[3])
         songs.clear()
-        for (i in 0 until 3) songs.addAll(demoSongs(names[i], artists[i], covers[i]))
+        for (i in 0 until 3) songs.addAll(demoSongs(names[i], artistNames[i], covers[i]))
         songsDone = true
         songsTotal = albums.size
     }

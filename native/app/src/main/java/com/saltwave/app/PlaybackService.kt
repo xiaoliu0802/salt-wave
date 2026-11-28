@@ -1,19 +1,75 @@
 package com.saltwave.app
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Media3 播放服务：ExoPlayer + MediaSession，通知栏与锁屏控制由 Media3 接管。 */
 class PlaybackService : MediaSessionService() {
 
+    companion object {
+        const val ACTION_RELOAD = "com.saltwave.app.RELOAD_SETTINGS"
+    }
+
     private var session: MediaSession? = null
+    private var playerRef: ExoPlayer? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var fadeJob: Job? = null
+    private var fadingOut = false
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            applySettings()
+        }
+    }
+
+    private val fadeListener = object : Player.Listener {
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            fadingOut = false
+            val p = playerRef ?: return
+            if (AppSettings.fade) {
+                p.volume = 0f
+                fadeTo(1f, 700)
+            } else {
+                p.volume = 1f
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            val p = playerRef ?: return
+            if (isPlaying) {
+                if (AppSettings.fade && p.volume < 1f) fadeTo(1f, 500)
+            } else {
+                p.volume = 1f
+                fadingOut = false
+            }
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_ENDED) {
+                playerRef?.volume = 1f
+                fadingOut = false
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -43,7 +99,58 @@ class PlaybackService : MediaSessionService() {
             .setSeekForwardIncrementMs(AppSettings.seekStep * 1000L)
             .build()
 
+        playerRef = player
+        player.addListener(fadeListener)
+        player.skipSilenceEnabled = AppSettings.gapless
         session = MediaSession.Builder(this, player).build()
+
+        val filter = IntentFilter(ACTION_RELOAD)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(receiver, filter)
+        }
+
+        applySettings()
+        startFadeWatch()
+    }
+
+    private fun applySettings() {
+        val p = playerRef ?: return
+        p.skipSilenceEnabled = AppSettings.gapless
+        VolumeBalance.apply(p, AppSettings.balance)
+        if (!AppSettings.fade) p.volume = 1f
+    }
+
+    private fun startFadeWatch() {
+        scope.launch {
+            while (true) {
+                delay(250)
+                val p = playerRef ?: continue
+                if (!AppSettings.fade || !p.isPlaying || fadingOut) continue
+                val dur = p.duration
+                if (dur <= 0 || dur == C.TIME_UNSET) continue
+                val left = dur - p.currentPosition
+                if (left in 1..1200L) {
+                    fadingOut = true
+                    fadeTo(0.06f, left)
+                }
+            }
+        }
+    }
+
+    private fun fadeTo(target: Float, ms: Long) {
+        val p = playerRef ?: return
+        fadeJob?.cancel()
+        fadeJob = scope.launch {
+            val from = p.volume
+            val steps = 12
+            val stepMs = (ms / steps).coerceAtLeast(15)
+            for (i in 1..steps) {
+                p.volume = from + (target - from) * (i.toFloat() / steps)
+                delay(stepMs)
+            }
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
@@ -60,6 +167,9 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(receiver) }
+        scope.cancel()
+        VolumeBalance.release()
         session?.run {
             player.release()
             release()

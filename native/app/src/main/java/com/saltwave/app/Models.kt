@@ -17,6 +17,14 @@ data class Playlist(
     val demoRes: Int? = null,
 )
 
+data class Artist(
+    val id: String,
+    val name: String,
+    val count: Int,
+    val coverId: String?,
+    val demoRes: Int? = null,
+)
+
 data class Track(
     val id: String,
     val title: String,

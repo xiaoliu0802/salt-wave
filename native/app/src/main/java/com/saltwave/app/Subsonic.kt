@@ -59,6 +59,34 @@ class Subsonic(server: String, private val user: String, pass: String) {
         (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let(::toAlbum) }
     }
 
+    suspend fun artists(): List<Artist> = io {
+        val r = call("getArtists")
+        val indexes = r.optJSONObject("artists")?.optJSONArray("index") ?: JSONArray()
+        val out = ArrayList<Artist>()
+        for (i in 0 until indexes.length()) {
+            val arr = indexes.optJSONObject(i)?.optJSONArray("artist") ?: continue
+            for (j in 0 until arr.length()) {
+                val o = arr.optJSONObject(j) ?: continue
+                val id = o.optString("id")
+                out.add(
+                    Artist(
+                        id = id,
+                        name = o.optString("name", "未命名"),
+                        count = o.optInt("albumCount"),
+                        coverId = o.optString("coverArt").takeIf { it.isNotEmpty() } ?: id,
+                    )
+                )
+            }
+        }
+        out
+    }
+
+    suspend fun artistAlbums(id: String): List<Album> = io {
+        val r = call("getArtist", "id" to id)
+        val arr = r.optJSONObject("artist")?.optJSONArray("album") ?: JSONArray()
+        (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let(::toAlbum) }
+    }
+
     suspend fun albumSongs(id: String): List<Track> = io {
         val r = call("getAlbum", "id" to id)
         val arr = r.optJSONObject("album")?.optJSONArray("song") ?: JSONArray()

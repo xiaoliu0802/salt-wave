@@ -31,6 +31,19 @@ val AccentPalette = listOf(
     Color(0xFFD6336C) to "梅子红",
 )
 
+/** 歌词高亮色，独立于主题色。 */
+val LyricPalette = listOf(
+    Color(0xFFF3F6FB) to "月白",
+    Color(0xFFFFD466) to "琥珀",
+    Color(0xFF66E0C2) to "薄荷",
+    Color(0xFFFF8FB1) to "樱粉",
+    Color(0xFF6FA8FF) to "天空",
+    Color(0xFFFFA45B) to "蜜橘",
+)
+
+@Composable
+fun lyricColor(): Color = LyricPalette[AppSettings.lyricColorIndex.coerceIn(0, LyricPalette.lastIndex)].first
+
 val LocalSw = staticCompositionLocalOf<SwColors> { error("SaltTheme not set") }
 
 @Composable
