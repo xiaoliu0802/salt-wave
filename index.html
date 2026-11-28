@@ -1869,13 +1869,11 @@
         /* 首页：居中限宽 */        .tablet-mode .home {
             max-width: 1240px;            margin: 0 auto;            padding-left: 34px;            padding-right: 34px;            padding-top: 78px !important;        }        
         /* 播放页：左信息 / 右歌词 双栏 */        .tablet-mode .lyrics-panel {
-            display: grid;            grid-template-columns: minmax(300px, 31%) minmax(0, 1fr);            grid-template-rows: auto 1fr auto;            grid-template-areas: "head lyr" "cover lyr" "foot lyr";            column-gap: 40px;            height: 100%;            padding: var(--sbh) 44px var(--sbn);        }        .lyrics-close { display: none; }
-        .tablet-mode .lyrics-panel { position: relative; }
-        .tablet-mode .lyrics-close { display: flex; position: absolute; top: calc(var(--sbh) + 18px); right: 40px; width: 46px; height: 46px; border-radius: 50%; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); color: #fff; }
-        .tablet-mode .lyrics-close svg { width: 22px; height: 22px; }
+            display: grid;            grid-template-columns: minmax(300px, 31%) minmax(0, 1fr);            grid-template-rows: auto 1fr auto;            grid-template-areas: "head lyr" "cover lyr" "foot lyr";            column-gap: 40px;            height: 100%;            padding: var(--sbh) 44px var(--sbn);        }
         .lyrics-cover { display: none; }
         .tablet-mode .lyrics-cover { grid-area: cover; display: block; width: 100%; max-width: 330px; aspect-ratio: 1; object-fit: cover; border-radius: 22px; justify-self: start; align-self: center; box-shadow: 0 20px 60px rgba(0,0,0,.5); margin: 10px 0; }
-        .tablet-mode .lyrics-panel-header { grid-area: head; padding: 26px 0 0; justify-content: flex-start; }        .tablet-mode .lyrics-panel-header::before { display: none; }        .tablet-mode .lyrics-panel-content {
+        .tablet-mode .lyrics-panel-header { grid-area: head; padding: 30px 0 0; justify-content: flex-start; }
+        .tablet-mode .lyrics-panel-header::before { top: 6px; width: 54px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.34); }        .tablet-mode .lyrics-panel-content {
             grid-area: lyr;            max-width: none;            padding: 84px 10px 28px;        }        .tablet-mode .lyrics-footer { grid-area: foot; align-self: end; padding: 0 0 16px; }        .tablet-mode .lyrics-title { font-size: 25px; }        .tablet-mode .lyrics-artist { font-size: 15px; margin-top: 4px; }        .tablet-mode .lc-times { font-size: 13px; }        .tablet-mode .lc-btn { width: 56px; height: 56px; }        .tablet-mode .lc-play { width: 68px; height: 68px; }        .tablet-mode .lc-play svg { width: 34px; height: 34px; }        .tablet-mode .lc-buttons { gap: 26px; margin-top: 6px; }        .tablet-mode .lc-track { height: 26px; }        .tablet-mode .lc-actions { margin-top: 2px; }        
         /* 列表行加大，便于车上触控 */        .tablet-mode .song-row { padding-top: 15px; padding-bottom: 15px; }        .tablet-mode .card, .tablet-mode .album-card, .tablet-mode .lib-card { border-radius: 16px; }        
         /* 浅色外壳下的侧栏配色 */        .tablet-mode #app.home-mode .tablet-rail {
@@ -2022,9 +2020,6 @@
                 <div class="lyrics-artist" id="lyrics-artist"></div>
             </div>
         </div>
-        <button class="lyrics-close" id="lyrics-close" onclick="Player.closeLyricsPanel()" title="收起歌词">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
         <img class="lyrics-cover" id="lyrics-cover" alt="" />
         <div class="lyrics-panel-content" id="lyrics-panel-content">
             <div class="lyrics-empty">点击歌曲开始播放后显示歌词</div>
@@ -4676,7 +4671,7 @@ const App = {
                     ${rowInfo('账号', escapeHtml(SubsonicAPI.username || ''))}
                     ${rowNav('强制更新整个曲库', '', 'App.forceRefreshLibrary()', '清空本地缓存后重新拉取')}
                     ${rowNav('清除登录信息并退出', '', 'App.logout()')}
-                    ${rowInfo('关于 Salt Wave', 'v1.0.13')}
+                    ${rowInfo('关于 Salt Wave', 'v1.0.14')}
                 `)}
             </div>
         `;
