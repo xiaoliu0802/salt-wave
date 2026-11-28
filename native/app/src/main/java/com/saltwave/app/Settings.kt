@@ -26,6 +26,7 @@ object AppSettings {
     var coverRadius by mutableIntStateOf(14)
     var gridColumns by mutableIntStateOf(2)
     var showMiniPlayer by mutableStateOf(true)
+    var showSpectrum by mutableStateOf(false)
 
     // 歌词
     var lyricSize by mutableIntStateOf(17)
@@ -60,6 +61,7 @@ object AppSettings {
         coverRadius = p.getInt("ui.radius", 14)
         gridColumns = p.getInt("ui.columns", 2)
         showMiniPlayer = p.getBoolean("ui.mini", true)
+        showSpectrum = p.getBoolean("ui.spectrum", false)
         lyricSize = p.getInt("ly.size", 17)
         lyricCenter = p.getBoolean("ly.center", false)
         lyricOffsetMs = p.getInt("ly.offset", 0)
@@ -87,6 +89,7 @@ object AppSettings {
             ?.putInt("ui.radius", coverRadius)
             ?.putInt("ui.columns", gridColumns)
             ?.putBoolean("ui.mini", showMiniPlayer)
+            ?.putBoolean("ui.spectrum", showSpectrum)
             ?.putInt("ly.size", lyricSize)
             ?.putBoolean("ly.center", lyricCenter)
             ?.putInt("ly.offset", lyricOffsetMs)

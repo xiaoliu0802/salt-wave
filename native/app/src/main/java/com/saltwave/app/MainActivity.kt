@@ -21,6 +21,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,9 +43,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -64,6 +67,7 @@ import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -118,6 +122,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -135,6 +141,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -175,6 +183,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= 29) window.isNavigationBarContrastEnforced = false
         AppSettings.init(this)
         restoreLibrary()
 
@@ -304,15 +316,11 @@ fun AppRoot(controller: MediaController?) {
     val playerOpen = current is Screen.Player
     SideEffect {
         val window = (context as Activity).window
-        val bg = if (playerOpen || dark) 0xFF0B0E14.toInt() else 0xFFF5F6F8.toInt()
-        window.statusBarColor = bg
-        window.navigationBarColor = bg
-        var flags = 0
-        if (!playerOpen && !dark) {
-            flags = flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-            if (Build.VERSION.SDK_INT >= 26) flags = flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        val light = !playerOpen && !dark
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
         }
-        window.decorView.systemUiVisibility = flags
     }
 
     Box(
@@ -320,7 +328,12 @@ fun AppRoot(controller: MediaController?) {
             .fillMaxSize()
             .background(if (playerOpen) c.playerBg else c.page)
     ) {
-        when (current) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .then(if (playerOpen) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())
+        ) {
+            when (current) {
             is Screen.Home -> HomeScreen(
                 tab = current.tab,
                 controller = controller,
@@ -370,6 +383,7 @@ fun AppRoot(controller: MediaController?) {
                 onBack = { stack = stack.dropLast(1) },
                 onLogin = { stack = stack + Screen.Login },
             )
+        }
         }
 
         if (!playerOpen && AppSettings.showMiniPlayer && Now.title.isNotEmpty() && controller != null) {
@@ -1624,6 +1638,16 @@ fun SettingsScreen(controller: MediaController?, onBack: () -> Unit, onLogin: ()
                             AppSettings.persist()
                         },
                     )
+                    HorizontalDivider(Modifier.padding(vertical = 12.dp), color = c.divider)
+                    SwitchRow(
+                        title = "播放页频谱",
+                        desc = "黑胶下方显示动态频谱条",
+                        checked = AppSettings.showSpectrum,
+                        onChange = {
+                            AppSettings.showSpectrum = it
+                            AppSettings.persist()
+                        },
+                    )
                 }
             }
 
@@ -1837,7 +1861,7 @@ fun SettingsScreen(controller: MediaController?, onBack: () -> Unit, onLogin: ()
             item {
                 GroupTitle("关于")
                 SettingCard {
-                    Text("Salt Wave 1.4.1", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.ink)
+                    Text("Salt Wave 1.4.2", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c.ink)
                     Text(
                         "Navidrome / Subsonic 客户端 · ExoPlayer(Media3) 内核 · 全部实时串流，不做离线缓存",
                         fontSize = 11.sp,
@@ -2117,6 +2141,7 @@ fun PlayerScreen(
     val accent = c.accent
     val lyricTint = lyricColor()
     var showSleep by remember { mutableStateOf(false) }
+    var showInfo by remember { mutableStateOf(false) }
     var dragging by remember { mutableStateOf(false) }
     var dragValue by remember { mutableFloatStateOf(0f) }
     var lyricLines by remember(Now.mediaId) { mutableStateOf<List<LyricLine>>(emptyList()) }
@@ -2201,12 +2226,12 @@ fun PlayerScreen(
 
         HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
             if (page == 0) {
-                Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
-                    Spacer(Modifier.height(16.dp))
+                Column(Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 18.dp)) {
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         Now.title.ifEmpty { "Salt Wave" },
                         modifier = Modifier.fillMaxWidth(),
-                        fontSize = 16.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = ink,
                         textAlign = TextAlign.Center,
@@ -2269,6 +2294,10 @@ fun PlayerScreen(
                     }
 
                     Spacer(Modifier.height(4.dp))
+                    if (AppSettings.showSpectrum) {
+                        SpectrumBars(active = Now.playing, color = accent)
+                        Spacer(Modifier.height(6.dp))
+                    }
                     ThinSeekBar(
                         frac = if (duration > 0) (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f,
                         color = accent,
@@ -2293,15 +2322,20 @@ fun PlayerScreen(
                         ink = ink,
                         dim = Color(0x8FFFFFFF),
                         onQueue = onQueue,
+                        onSettings = onSettings,
+                        onSleep = { showSleep = true },
+                        onInfo = { showInfo = true },
                     )
+                    Spacer(Modifier.navigationBarsPadding())
+                    Spacer(Modifier.height(4.dp))
                 }
             } else {
-                Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-                    Spacer(Modifier.height(16.dp))
+                Column(Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 20.dp)) {
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         Now.title.ifEmpty { "Salt Wave" },
                         modifier = Modifier.fillMaxWidth(),
-                        fontSize = 16.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = ink,
                         textAlign = TextAlign.Center,
@@ -2386,6 +2420,15 @@ fun PlayerScreen(
                         }
                     }
 
+                    QuickLyricBar(
+                        accent = accent,
+                        dim = dim,
+                        onSeekBack = {
+                            val t = position - 3000L
+                            if (t > 0) seekTo(t)
+                        },
+                        onSeekFwd = { seekTo(position + 3000L) },
+                    )
                     ThinSeekBar(
                         frac = if (duration > 0) (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f,
                         color = accent,
@@ -2409,8 +2452,12 @@ fun PlayerScreen(
                         ink = ink,
                         dim = Color(0x8FFFFFFF),
                         onQueue = onQueue,
+                        onSettings = onSettings,
+                        onSleep = { showSleep = true },
+                        onInfo = { showInfo = true },
                     )
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.navigationBarsPadding())
+                    Spacer(Modifier.height(4.dp))
                 }
             }
         }
@@ -2460,6 +2507,147 @@ fun PlayerScreen(
             textContentColor = c.ink,
         )
     }
+
+    if (showInfo) {
+        AlertDialog(
+            onDismissRequest = { showInfo = false },
+            title = { Text("歌曲信息") },
+            text = {
+                Column {
+                    InfoLine("歌名", Now.title.ifEmpty { "—" }, c.ink, c.sub)
+                    InfoLine("歌手", Now.artist.ifEmpty { "—" }, c.ink, c.sub)
+                    InfoLine("时长", mmss(Now.duration), c.ink, c.sub)
+                    InfoLine("歌曲 ID", Now.mediaId ?: "—", c.ink, c.sub)
+                    InfoLine("音质设置", AppSettings.bitrateText(), c.ink, c.sub)
+                    InfoLine("均衡/淡入淡出", if (AppSettings.balance) "已开" else "已关", c.ink, c.sub)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showInfo = false }) { Text("好") }
+            },
+            containerColor = c.card,
+            titleContentColor = c.ink,
+            textContentColor = c.ink,
+        )
+    }
+}
+
+@Composable
+fun InfoLine(label: String, value: String, color: Color, dim: Color) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(label, fontSize = 12.sp, color = dim, modifier = Modifier.width(86.dp))
+        Text(value, fontSize = 12.sp, color = color, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun QuickLyricBar(
+    accent: Color,
+    dim: Color,
+    onSeekBack: () -> Unit,
+    onSeekFwd: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DarkPill("字 -") {
+            AppSettings.lyricSize = (AppSettings.lyricSize - 1).coerceIn(12, 30)
+            AppSettings.persist()
+        }
+        DarkPill("字 +") {
+            AppSettings.lyricSize = (AppSettings.lyricSize + 1).coerceIn(12, 30)
+            AppSettings.persist()
+        }
+        DarkPill(AppSettings.lyricSize.toString(), active = false) {}
+        DarkPill("歌词 -0.1s") {
+            AppSettings.lyricOffsetMs -= 100
+            AppSettings.persist()
+        }
+        DarkPill("歌词 +0.1s") {
+            AppSettings.lyricOffsetMs += 100
+            AppSettings.persist()
+        }
+        DarkPill("回退 3s", onClick = onSeekBack)
+        DarkPill("前进 3s", onClick = onSeekFwd)
+        DarkPill(if (AppSettings.lyricCenter) "居中" else "左对齐", active = AppSettings.lyricCenter) {
+            AppSettings.lyricCenter = !AppSettings.lyricCenter
+            AppSettings.persist()
+        }
+    }
+}
+
+@Composable
+fun SpectrumBars(active: Boolean, color: Color) {
+    val inf = rememberInfiniteTransition(label = "spec")
+    val t1 by inf.animateFloat(
+        0f, 1f,
+        infiniteRepeatable(tween(1600, easing = LinearEasing)),
+        label = "t1",
+    )
+    val t2 by inf.animateFloat(
+        0f, 1f,
+        infiniteRepeatable(tween(1000, easing = LinearEasing)),
+        label = "t2",
+    )
+    Canvas(Modifier.fillMaxWidth().height(22.dp)) {
+        val n = 38
+        val gap = 3.dp.toPx()
+        val w = ((size.width - gap * (n - 1)) / n).coerceAtLeast(2f)
+        for (i in 0 until n) {
+            val h = if (!active) {
+                0.10f
+            } else {
+                val a = kotlin.math.sin(i * 0.32f + t1 * 6.283f)
+                val b = kotlin.math.sin(i * 0.11f - t2 * 6.283f)
+                (0.14f + 0.44f * ((a + b + 2f) / 4f)).coerceIn(0.10f, 1f)
+            }
+            val bh = size.height * h
+            drawRoundRect(
+                color = color.copy(alpha = 0.22f + 0.5f * h),
+                topLeft = Offset(i * (w + gap), size.height - bh),
+                size = Size(w, bh),
+                cornerRadius = CornerRadius(w / 2f),
+            )
+        }
+    }
+}
+
+@Composable
+fun MiniAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    active: Boolean,
+    accent: Color,
+    ink: Color,
+    dim: Color,
+    onClick: () -> Unit,
+) {
+    Column(
+        Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (active) accent else ink.copy(alpha = 0.72f),
+            modifier = Modifier.size(19.dp),
+        )
+        Text(
+            label,
+            modifier = Modifier.padding(top = 3.dp),
+            fontSize = 9.sp,
+            color = if (active) accent else dim,
+            maxLines = 1,
+        )
+    }
 }
 
 @Composable
@@ -2469,81 +2657,119 @@ fun TransportBar(
     ink: Color,
     dim: Color,
     onQueue: () -> Unit,
+    onSettings: () -> Unit,
+    onSleep: () -> Unit,
+    onInfo: () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().padding(top = 4.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            onClick = { controller?.shuffleModeEnabled = !Now.shuffle },
-            modifier = Modifier.size(42.dp),
+    Column(Modifier.fillMaxWidth().padding(top = 2.dp)) {
+        // 第一行：播放列表 / 上一首 / 播放 / 下一首 / 设置
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Rounded.Shuffle,
-                contentDescription = "随机",
-                tint = if (Now.shuffle) accent else dim,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        IconButton(
-            onClick = { controller?.seekToPreviousMediaItem() },
-            modifier = Modifier.size(42.dp),
-        ) {
-            Icon(Icons.Rounded.SkipPrevious, contentDescription = "上一首", tint = ink, modifier = Modifier.size(26.dp))
-        }
-        FilledIconButton(
-            onClick = {
-                val p = controller ?: return@FilledIconButton
-                when {
-                    p.isPlaying -> p.pause()
-                    p.playbackState == Player.STATE_ENDED -> {
-                        p.seekTo(0)
-                        p.play()
-                    }
-
-                    else -> p.play()
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                IconButton(onClick = onQueue, modifier = Modifier.size(42.dp)) {
+                    Icon(Icons.Rounded.QueueMusic, contentDescription = "播放列表", tint = dim, modifier = Modifier.size(21.dp))
                 }
-            },
-            modifier = Modifier.size(58.dp),
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = accent),
-        ) {
-            if (Now.buffering) {
-                CircProgress(24.dp)
-            } else {
-                Icon(
-                    if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = "播放/暂停",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp),
-                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { controller?.seekToPreviousMediaItem() },
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(Icons.Rounded.SkipPrevious, contentDescription = "上一首", tint = ink, modifier = Modifier.size(28.dp))
+                }
+                FilledIconButton(
+                    onClick = {
+                        val p = controller ?: return@FilledIconButton
+                        when {
+                            p.isPlaying -> p.pause()
+                            p.playbackState == Player.STATE_ENDED -> {
+                                p.seekTo(0)
+                                p.play()
+                            }
+
+                            else -> p.play()
+                        }
+                    },
+                    modifier = Modifier.size(64.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = accent),
+                ) {
+                    if (Now.buffering) {
+                        CircProgress(24.dp)
+                    } else {
+                        Icon(
+                            if (Now.playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            contentDescription = "播放/暂停",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = { controller?.seekToNextMediaItem() },
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    Icon(Icons.Rounded.SkipNext, contentDescription = "下一首", tint = ink, modifier = Modifier.size(28.dp))
+                }
+            }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                IconButton(onClick = onSettings, modifier = Modifier.size(42.dp)) {
+                    Icon(Icons.Rounded.Settings, contentDescription = "设置", tint = dim, modifier = Modifier.size(20.dp))
+                }
             }
         }
-        IconButton(
-            onClick = { controller?.seekToNextMediaItem() },
-            modifier = Modifier.size(42.dp),
+
+        // 第二行：随机 / 定时 / 频谱 / 循环 / 歌曲信息
+        Row(
+            Modifier.fillMaxWidth().padding(top = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Rounded.SkipNext, contentDescription = "下一首", tint = ink, modifier = Modifier.size(26.dp))
-        }
-        IconButton(
-            onClick = {
-                controller?.repeatMode = when (Now.repeatMode) {
-                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                    else -> Player.REPEAT_MODE_OFF
-                }
-            },
-            modifier = Modifier.size(42.dp),
-        ) {
-            Icon(
-                if (Now.repeatMode == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
-                contentDescription = "循环",
-                tint = if (Now.repeatMode == Player.REPEAT_MODE_OFF) dim else accent,
-                modifier = Modifier.size(20.dp),
+            MiniAction(
+                icon = Icons.Rounded.Shuffle,
+                label = "随机",
+                active = Now.shuffle,
+                accent = accent, ink = ink, dim = dim,
+                onClick = { controller?.shuffleModeEnabled = !Now.shuffle },
             )
-        }
-        IconButton(onClick = onQueue, modifier = Modifier.size(42.dp)) {
-            Icon(Icons.Rounded.QueueMusic, contentDescription = "播放列表", tint = dim, modifier = Modifier.size(20.dp))
+            MiniAction(
+                icon = Icons.Rounded.Timer,
+                label = if (Now.sleepUntil != null) "定时中" else "定时",
+                active = Now.sleepUntil != null,
+                accent = accent, ink = ink, dim = dim,
+                onClick = onSleep,
+            )
+            MiniAction(
+                icon = Icons.Rounded.GraphicEq,
+                label = "频谱",
+                active = AppSettings.showSpectrum,
+                accent = accent, ink = ink, dim = dim,
+                onClick = {
+                    AppSettings.showSpectrum = !AppSettings.showSpectrum
+                    AppSettings.persist()
+                },
+            )
+            MiniAction(
+                icon = if (Now.repeatMode == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+                label = "循环",
+                active = Now.repeatMode != Player.REPEAT_MODE_OFF,
+                accent = accent, ink = ink, dim = dim,
+                onClick = {
+                    controller?.repeatMode = when (Now.repeatMode) {
+                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                        else -> Player.REPEAT_MODE_OFF
+                    }
+                },
+            )
+            MiniAction(
+                icon = Icons.Rounded.Info,
+                label = "歌曲信息",
+                active = false,
+                accent = accent, ink = ink, dim = dim,
+                onClick = onInfo,
+            )
         }
     }
 }
@@ -2560,7 +2786,7 @@ fun VinylDisc(artwork: Any?, playing: Boolean) {
     val rotation = if (playing) angle else 0f
 
     Box(
-        Modifier.fillMaxWidth(0.74f).aspectRatio(1f),
+        Modifier.fillMaxWidth(0.88f).aspectRatio(1f),
         contentAlignment = Alignment.Center,
     ) {
         Box(
